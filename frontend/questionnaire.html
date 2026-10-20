@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maternix — Health Profile Setup</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ── CSS Variables ─────────────────────── */
+:root {
+  --pink:       #d96b8c;
+  --pink-light: #f5d6e0;
+  --pink-pale:  #fdf0f4;
+  --pink-dark:  #c25577;
+  --blue:       #4a9bd6;
+  --blue-light: #e6f1fb;
+  --navy:       #2f3e4e;
+  --slate:      #506680;
+  --bg:         #f7f9fc;
+  --white:      #ffffff;
+  --border:     #e6eef5;
+  --green:      #3dbf91;
+  --orange:     #f0956a;
+  --shadow-sm:  0 2px 12px rgba(47,62,78,.08);
+  --shadow-md:  0 8px 32px rgba(47,62,78,.12);
+  --shadow-pink:0 8px 28px rgba(217,107,140,.28);
+  --radius:     18px;
+  --radius-sm:  12px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--navy);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Layout ────────────────────────────── */
+.container{
+  max-width:900px;
+  margin:0 auto;
+  padding:40px 20px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── Header ────────────────────────────── */
+.header{
+  margin-bottom:36px;
+}
+.header-top{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:24px;
+}
+.header-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,var(--pink),var(--pink-dark));
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;color:white;
+  box-shadow:var(--shadow-pink);
+}
+.header-info h1{
+  font-family:'Playfair Display',serif;
+  font-size:28px;font-weight:700;
+  color:var(--navy);margin-bottom:4px;
+}
+.header-info p{
+  font-size:13px;color:var(--slate);
+}
+
+.progress-bar{
+  height:4px;background:var(--border);
+  border-radius:10px;margin-bottom:24px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--pink),var(--pink-dark));
+  width:0%;transition:width .3s ease;
+  border-radius:10px;
+}
+
+/* ── User Info Card ────────────────────── */
+.user-card{
+  background:var(--white);border-radius:var(--radius);
+  border:1.5px solid var(--border);padding:20px;
+  margin-bottom:28px;box-shadow:var(--shadow-sm);
+  display:flex;align-items:center;gap:16px;
+}
+.user-avatar{
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(135deg,var(--pink-pale),var(--blue-light));
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--pink);
+  font-weight:700;
+}
+.user-details h3{
+  font-size:16px;font-weight:600;
+  color:var(--navy);margin-bottom:2px;
+}
+.user-details p{
+  font-size:12px;color:var(--slate);
+}
+
+/* ── Sections ──────────────────────────── */
+.section{
+  background:var(--white);border-radius:var(--radius);
+  border:1.5px solid var(--border);padding:28px;
+  margin-bottom:24px;box-shadow:var(--shadow-sm);
+}
+.section-title{
+  font-family:'Playfair Display',serif;
+  font-size:20px;font-weight:700;
+  color:var(--navy);margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-title i{
+  color:var(--pink);font-size:22px;
+}
+.section-sub{
+  font-size:12px;color:var(--slate);
+  margin-bottom:20px;
+}
+
+/* ── Form Groups ───────────────────────── */
+.form-group{
+  margin-bottom:20px;
+}
+.form-group:last-child{margin-bottom:0;}
+.form-label{
+  font-size:12px;font-weight:700;
+  color:var(--navy);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;
+}
+.form-label i{
+  color:var(--pink);font-size:14px;
+}
+.form-input, .form-select, .form-textarea{
+  width:100%;
+  padding:12px 14px;
+  border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;color:var(--navy);
+  background:var(--white);
+  transition:border-color .2s,box-shadow .2s;
+  outline:none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus{
+  border-color:var(--pink);
+  box-shadow:0 0 0 3px rgba(217,107,140,.12);
+}
+.form-textarea{
+  resize:vertical;min-height:100px;
+  font-family:'DM Sans',sans-serif;
+}
+
+/* ── Radio/Checkbox Options ────────────── */
+.option-group{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.option-item{
+  display:flex;align-items:center;gap:10px;
+  padding:12px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);
+  cursor:pointer;transition:all .2s;
+  background:var(--white);
+}
+.option-item:hover{
+  border-color:var(--pink);background:var(--pink-pale);
+}
+.option-item input{
+  width:18px;height:18px;cursor:pointer;
+  accent-color:var(--pink);
+}
+.option-item label{
+  cursor:pointer;flex:1;font-size:13px;
+  color:var(--navy);font-weight:500;
+}
+
+.option-group.full{
+  grid-template-columns:1fr;
+}
+
+/* ── Grid Layout ───────────────────────── */
+.form-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+}
+
+/* ── Medication Section ────────────────── */
+.med-list{
+  display:flex;flex-direction:column;gap:12px;
+}
+.med-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px;background:var(--pink-pale);
+  border-radius:var(--radius-sm);border:1px solid var(--pink-light);
+}
+.med-checkbox{
+  width:20px;height:20px;margin-top:2px;
+  cursor:pointer;accent-color:var(--pink);
+}
+.med-info h4{
+  font-size:13px;font-weight:600;
+  color:var(--navy);margin-bottom:2px;
+}
+.med-info p{
+  font-size:11px;color:var(--slate);
+}
+
+/* ── Button Group ──────────────────────── */
+.button-group{
+  display:flex;gap:16px;margin-top:28px;
+  justify-content:space-between;
+}
+.btn{
+  padding:13px 28px;border-radius:24px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:600;
+  cursor:pointer;transition:all .2s;
+  border:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-secondary{
+  background:var(--white);border:1.5px solid var(--border);
+  color:var(--navy);
+}
+.btn-secondary:hover{
+  border-color:var(--pink);color:var(--pink);
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--pink) 0%,var(--pink-dark) 100%);
+  color:white;box-shadow:var(--shadow-pink);
+}
+.btn-primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(217,107,140,.42);
+}
+.btn-primary:active{transform:translateY(0);}
+
+/* ── Success Overlay ───────────────────── */
+.success-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(47,62,78,.4);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;opacity:0;visibility:hidden;
+  transition:all .35s ease;
+}
+.success-overlay.show{opacity:1;visibility:visible;}
+.success-card{
+  background:white;border-radius:var(--radius);
+  padding:40px;text-align:center;max-width:320px;
+  box-shadow:0 20px 60px rgba(47,62,78,.3);
+  animation:slideUp .4s cubic-bezier(.34,.69,.68,1.28);
+}
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(30px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.success-icon{
+  width:60px;height:60px;border-radius:50%;
+  background:var(--pink-pale);display:flex;
+  align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+.success-icon i{
+  font-size:28px;color:var(--pink);
+}
+.success-title{
+  font-family:'Playfair Display',serif;
+  font-size:20px;color:var(--navy);margin-bottom:8px;
+}
+.success-sub{font-size:13px;color:var(--slate);margin-bottom:24px;}
+
+/* ── Responsive ────────────────────────── */
+@media(max-width:768px){
+  .container{padding:20px 16px;}
+  .header-info h1{font-size:22px;}
+  .form-row{grid-template-columns:1fr;}
+  .option-group{grid-template-columns:1fr;}
+  .button-group{flex-direction:column;}
+  .section{padding:20px;}
+}
+</style>
+<!-- Script imports removed -->
+</head>
+<body>
+
+<div class="container">
+  <!-- ══ HEADER ══════════════════════════════ -->
+  <div class="header">
+    <div class="header-top">
+      <div class="header-icon">
+        <i class="fas fa-clipboard-check"></i>
+      </div>
+      <div class="header-info">
+        <h1>Health Profile Setup</h1>
+        <p>Let's create your personalized maternal health profile</p>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- ══ USER INFO CARD ══════════════════════ -->
+  <div class="user-card">
+    <div class="user-avatar" id="userInitial">A</div>
+    <div class="user-details">
+      <h3 id="userName">User Name</h3>
+      <p id="userEmail">user@email.com</p>
+      <p style="margin-top:4px;font-size:11px;color:var(--pink);font-weight:600;">
+        <i class="fas fa-check-circle"></i> Status: <span id="userStatus">Pregnant</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- ══ FORM SECTIONS ═══════════════════════ -->
+  <form id="questionnaire" onsubmit="handleSubmit(event)">
+
+    <!-- ── SECTION 1: PERSONAL HEALTH ─────── -->
+    <div class="section">
+      <div class="section-title">
+        <i class="fas fa-heart-pulse"></i> Personal Health Information
+      </div>
+      <div class="section-sub">Help us understand your current health status</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-birthday-cake"></i> Age
+          </label>
+          <input type="number" class="form-input" id="age" min="15" max="50" placeholder="Enter your age" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-weight"></i> Current Weight (kg)
+          </label>
+          <input type="number" class="form-input" id="weight" min="30" step="0.1" placeholder="e.g., 65.5" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-ruler"></i> Height (cm)
+          </label>
+          <input type="number" class="form-input" id="height" min="100" step="0.1" placeholder="e.g., 165" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-droplet"></i> Blood Type
+          </label>
+          <select class="form-select" id="bloodType" required>
+            <option value="">Select blood type</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 2: MEDICAL HISTORY ────── -->
+    <div class="section">
+      <div class="section-title">
+        <i class="fas fa-stethoscope"></i> Medical History
+      </div>
+      <div class="section-sub">Tell us about your medical background</div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-notes-medical"></i> Any Chronic Conditions?
+        </label>
+        <div class="option-group full">
+          <div class="option-item">
+            <input type="radio" name="chronic" value="no" id="chronic_no" checked>
+            <label for="chronic_no">No chronic conditions</label>
+          </div>
+          <div class="option-item">
+            <input type="radio" name="chronic" value="yes" id="chronic_yes">
+            <label for="chronic_yes">Yes, I have chronic conditions</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" id="chronicDetails" style="display:none;">
+        <label class="form-label">
+          <i class="fas fa-pencil"></i> Please specify
+        </label>
+        <textarea class="form-textarea" id="chronicText" placeholder="e.g., Diabetes, Hypertension, etc."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-history"></i> Previous Pregnancies
+        </label>
+        <input type="number" class="form-input" id="prevPregnancies" min="0" max="10" placeholder="Number of previous pregnancies" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-syringe"></i> Any Allergies?
+        </label>
+        <textarea class="form-textarea" id="allergies" placeholder="List any drug, food, or other allergies (or write 'None')"></textarea>
+      </div>
+    </div>
+
+    <!-- ── SECTION 3: CURRENT MEDICATIONS ─ -->
+    <div class="section">
+      <div class="section-title">
+        <i class="fas fa-capsules"></i> Current Medications & Supplements
+      </div>
+      <div class="section-sub">Select the supplements and medications you're taking</div>
+
+      <div class="med-list">
+        <div class="med-item">
+          <input type="checkbox" class="med-checkbox" id="med_iron" name="medications" value="iron">
+          <div class="med-info">
+            <h4>Iron Supplement</h4>
+            <p>Essential for preventing anemia during pregnancy</p>
+          </div>
+        </div>
+
+        <div class="med-item">
+          <input type="checkbox" class="med-checkbox" id="med_folic" name="medications" value="folic">
+          <div class="med-info">
+            <h4>Folic Acid</h4>
+            <p>Prevents neural tube defects and supports fetal development</p>
+          </div>
+        </div>
+
+        <div class="med-item">
+          <input type="checkbox" class="med-checkbox" id="med_calcium" name="medications" value="calcium">
+          <div class="med-info">
+            <h4>Calcium Supplement</h4>
+            <p>Supports bone health for mother and baby</p>
+          </div>
+        </div>
+
+        <div class="med-item">
+          <input type="checkbox" class="med-checkbox" id="med_vitamin" name="medications" value="vitamin">
+          <div class="med-info">
+            <h4>Prenatal Vitamin</h4>
+            <p>Comprehensive micronutrients for pregnancy</p>
+          </div>
+        </div>
+
+        <div class="med-item">
+          <input type="checkbox" class="med-checkbox" id="med_other" name="medications" value="other">
+          <div class="med-info">
+            <h4>Other Medications (As prescribed by doctor)</h4>
+            <p>Any other medicines prescribed for specific conditions</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group" id="otherMedDetails" style="display:none;margin-top:16px;">
+        <label class="form-label">
+          <i class="fas fa-pencil"></i> Specify other medications
+        </label>
+        <textarea class="form-textarea" id="otherMedText" placeholder="List other medications and their purposes"></textarea>
+      </div>
+    </div>
+
+    <!-- ── SECTION 4: LIFESTYLE ──────────── -->
+    <div class="section">
+      <div class="section-title">
+        <i class="fas fa-heart"></i> Lifestyle Factors
+      </div>
+      <div class="section-sub">Help us understand your lifestyle habits</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-shoe-prints"></i> Exercise Frequency
+          </label>
+          <select class="form-select" id="exercise" required>
+            <option value="">Select frequency</option>
+            <option value="never">Never / Rarely</option>
+            <option value="light">Light (1-2 times/week)</option>
+            <option value="moderate">Moderate (3-4 times/week)</option>
+            <option value="regular">Regular (5+ times/week)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-moon"></i> Sleep Hours Per Night
+          </label>
+          <input type="number" class="form-input" id="sleep" min="3" max="12" step="0.5" placeholder="e.g., 7.5" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-ban"></i> Do you smoke or consume alcohol?
+        </label>
+        <div class="option-group">
+          <div class="option-item">
+            <input type="radio" name="habits" value="no" id="habits_no" checked>
+            <label for="habits_no">No, I don't</label>
+          </div>
+          <div class="option-item">
+            <input type="radio" name="habits" value="occasionally" id="habits_occ">
+            <label for="habits_occ">Occasionally</label>
+          </div>
+          <div class="option-item">
+            <input type="radio" name="habits" value="regularly" id="habits_reg">
+            <label for="habits_reg">Regularly</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 5: PREGNANCY DETAILS (if applicable) ─ -->
+    <div class="section" id="pregnancySection" style="display:none;">
+      <div class="section-title">
+        <i class="fas fa-baby"></i> Pregnancy Details
+      </div>
+      <div class="section-sub">Information about your current pregnancy</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-calendar"></i> Last Menstrual Period
+          </label>
+          <input type="date" class="form-input" id="lmp">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <i class="fas fa-heartbeat"></i> Expected Delivery Date
+          </label>
+          <input type="date" class="form-input" id="edd">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-clipboard-list"></i> Any pregnancy complications?
+        </label>
+        <textarea class="form-textarea" id="complications" placeholder="e.g., Gestational diabetes, preeclampsia, etc. (or write 'None')"></textarea>
+      </div>
+    </div>
+
+    <!-- ── SECTION 6: NOTES ───────────────── -->
+    <div class="section">
+      <div class="section-title">
+        <i class="fas fa-note-sticky"></i> Additional Notes
+      </div>
+      <div class="section-sub">Anything else you'd like us to know?</div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="fas fa-pencil"></i> Additional Information
+        </label>
+        <textarea class="form-textarea" id="notes" placeholder="Share any concerns, questions, or additional health information..."></textarea>
+      </div>
+    </div>
+
+    <!-- ── BUTTONS ────────────────────────── -->
+    <div class="button-group">
+      <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <button type="submit" class="btn btn-primary">
+        Complete Setup <i class="fas fa-check"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- ══ Success Overlay ══════════════════ -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <h2 class="success-title">Profile Complete!</h2>
+    <p class="success-sub">Your health profile has been set up successfully. Redirecting to dashboard...</p>
+    <div style="margin-top:24px;">
+      <div style="width:8px;height:8px;background:var(--pink);border-radius:50%;margin:0 auto;animation:pulse 1.5s infinite;"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pulse{
+  0%, 100%{opacity:1;transform:scale(1);}
+  50%{opacity:.5;transform:scale(1.2);}
+}
+</style>
+
+<script>
+// Base API path (empty string for same-origin, or configured via window.API_BASE)
+const API_BASE = window.API_BASE || '';
+
+// ─ Initialize Questionnaire ─
+async function initQuestionnaire() {
+  const user = JSON.parse(localStorage.getItem('currentUser'));
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Verify server session
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+      headers,
+      credentials: 'include'
+    });
+
+    if (res.status === 401) {
+      console.warn('[Maternix] Session expired. Redirecting to login.');
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      window.location.href = 'login.html';
+      return;
+    }
+  } catch (err) {
+    console.warn('[Maternix] Auth check failed or offline:', err.message);
+  }
+
+  // Populate user info
+  const initial = (user.firstName && user.firstName[0]) ? user.firstName[0].toUpperCase() : 'U';
+  document.getElementById('userInitial').textContent = initial;
+  document.getElementById('userName').textContent = (user.firstName || '') + ' ' + (user.lastName || '');
+  document.getElementById('userEmail').textContent = user.email || '';
+  document.getElementById('userStatus').textContent = user.status === 'pregnant' ? 'Pregnant' : 'Postnatal Mother';
+
+  // Show pregnancy section only for pregnant users
+  if (user.status === 'pregnant') {
+    document.getElementById('pregnancySection').style.display = 'block';
+  }
+
+  // Update progress bar on scroll
+  updateProgress();
+  window.addEventListener('scroll', updateProgress);
+}
+
+// ─ Update Progress Bar ─
+function updateProgress() {
+  const form = document.getElementById('questionnaire');
+  const totalFields = form.querySelectorAll('input[required], select[required], textarea[required]').length;
+  const filledFields = form.querySelectorAll('input[required]:valid, select[required]:valid, textarea[required]:valid').length;
+  
+  const progress = totalFields > 0 ? (filledFields / totalFields) * 100 : 0;
+  document.getElementById('progressBar').style.width = progress + '%';
+}
+
+// ─ Show/Hide Conditional Fields ─
+document.addEventListener('DOMContentLoaded', function() {
+  // Chronic conditions toggle
+  document.querySelectorAll('input[name="chronic"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.getElementById('chronicDetails').style.display = 
+        this.value === 'yes' ? 'block' : 'none';
+    });
+  });
+
+  // Other medications toggle
+  document.getElementById('med_other').addEventListener('change', function() {
+    document.getElementById('otherMedDetails').style.display = 
+      this.checked ? 'block' : 'none';
+  });
+
+  // Update progress on input
+  document.getElementById('questionnaire').addEventListener('input', updateProgress);
+  document.getElementById('questionnaire').addEventListener('change', updateProgress);
+
+  initQuestionnaire();
+});
+
+// ─ Handle Form Submission ─
+async function handleSubmit(e) {
+  e.preventDefault();
+
+  const user = JSON.parse(localStorage.getItem('currentUser'));
+  
+  // Collect questionnaire data
+  const questionnaireData = {
+    // Personal Health
+    age: document.getElementById('age').value,
+    weight: document.getElementById('weight').value,
+    height: document.getElementById('height').value,
+    bloodType: document.getElementById('bloodType').value,
+    
+    // Medical History
+    chronicConditions: document.querySelector('input[name="chronic"]:checked').value,
+    chronicDetails: document.getElementById('chronicText').value,
+    previousPregnancies: document.getElementById('prevPregnancies').value,
+    allergies: document.getElementById('allergies').value,
+    
+    // Medications
+    medications: Array.from(document.querySelectorAll('input[name="medications"]:checked'))
+      .map(c => c.value),
+    otherMeds: document.getElementById('otherMedText').value,
+    
+    // Lifestyle
+    exercise: document.getElementById('exercise').value,
+    sleep: document.getElementById('sleep').value,
+    habits: document.querySelector('input[name="habits"]:checked').value,
+    
+    // Pregnancy (if applicable)
+    lmp: document.getElementById('lmp').value || null,
+    edd: document.getElementById('edd').value || null,
+    complications: document.getElementById('complications').value,
+    
+    // Additional Notes
+    notes: document.getElementById('notes').value,
+    
+    // Timestamp
+    completedAt: new Date().toISOString()
+  };
+
+  // Save to user profile
+  user.questionnaireData = questionnaireData;
+
+  // Sync dueDate and currentWeek back from questionnaire data
+  if (user.status === 'pregnant') {
+    if (questionnaireData.edd) {
+      user.dueDate = questionnaireData.edd;
+    }
+    if (questionnaireData.lmp) {
+      const lmpDate = new Date(questionnaireData.lmp);
+      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const weeksElapsed = Math.floor((Date.now() - lmpDate.getTime()) / msPerWeek);
+      user.currentWeek = Math.max(1, Math.min(weeksElapsed, 42));
+    }
+  }
+
+  localStorage.setItem('currentUser', JSON.stringify(user));
+
+  // Patch the same user inside maternixDB so both stores stay in sync
+  const db = JSON.parse(localStorage.getItem('maternixDB'));
+  if (db) {
+    const idx = db.users.findIndex(u => u.id === user.id);
+    if (idx !== -1) {
+      db.users[idx] = { ...db.users[idx], ...user };
+      localStorage.setItem('maternixDB', JSON.stringify(db));
+    }
+  }
+
+  // Show success and redirect
+  // ── Write health profile to Backend ────────────────────────────────────
+  const motherId = user.motherId || user.id;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}/api/questionnaire`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({
+        motherId,
+        age: parseInt(questionnaireData.age) || null,
+        bloodType: questionnaireData.bloodType || null,
+        status: user.status,
+        currentWeek: user.currentWeek || 1,
+        dueDate: questionnaireData.edd || user.dueDate || null,
+        chronicDetails: questionnaireData.chronicDetails || null,
+        allergies: questionnaireData.allergies || null,
+        weight: parseFloat(questionnaireData.weight) || null
+      })
+    });
+    
+    if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        console.warn('[Maternix] Backend questionnaire write failed:', errData.error);
+    }
+  } catch (err) {
+    console.warn('[Maternix] Backend questionnaire network error:', err.message);
+  }
+  // ───────────────────────────────────────────────────────────────────────
+
+  document.getElementById('successOverlay').classList.add('show');
+  setTimeout(() => {
+    window.location.href = 'dashboard.html';
+  }, 1500);
+}
+
+// ─ Helper: Capitalize First Letter ─
+function capitalizeFirst(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+</script>
+</body>
+</html>

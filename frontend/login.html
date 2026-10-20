@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maternix — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ── CSS Variables ─────────────────────── */
+:root {
+  --pink:       #d96b8c;
+  --pink-light: #f5d6e0;
+  --pink-pale:  #fdf0f4;
+  --pink-dark:  #c25577;
+  --blue:       #4a9bd6;
+  --blue-light: #e6f1fb;
+  --navy:       #2f3e4e;
+  --slate:      #506680;
+  --bg:         #f7f9fc;
+  --white:      #ffffff;
+  --border:     #e6eef5;
+  --green:      #3dbf91;
+  --shadow-sm:  0 2px 12px rgba(47,62,78,.08);
+  --shadow-md:  0 8px 32px rgba(47,62,78,.12);
+  --shadow-pink:0 8px 28px rgba(217,107,140,.28);
+  --radius:     18px;
+  --radius-sm:  12px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--navy);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Page Layout ───────────────────────── */
+.page-wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  min-height:100vh;
+}
+
+/* ── Left Panel (Illustration) ─────────── */
+.left-panel{
+  background:linear-gradient(160deg,#fdf0f4 0%,#f0e8f8 40%,#e6f1fb 100%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:60px 48px;
+  position:relative;
+  overflow:hidden;
+}
+.left-panel::before{
+  content:'';
+  position:absolute;
+  width:420px;height:420px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(217,107,140,.12) 0%,transparent 70%);
+  top:-80px;left:-80px;
+}
+.left-panel::after{
+  content:'';
+  position:absolute;
+  width:300px;height:300px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(74,155,214,.10) 0%,transparent 70%);
+  bottom:-60px;right:-60px;
+}
+.brand{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:44px;position:relative;z-index:2;
+}
+.brand-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,var(--pink),var(--pink-dark));
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;color:white;
+  box-shadow:var(--shadow-pink);
+}
+.brand-name{
+  font-family:'Playfair Display',serif;
+  font-size:32px;font-weight:700;
+  color:var(--pink);letter-spacing:-.5px;
+}
+.brand-name em{color:var(--blue);font-style:normal;}
+
+.illus-wrap{
+  position:relative;z-index:2;
+  text-align:center;
+}
+.illus-icon{
+  font-size:110px;line-height:1;display:block;
+  animation:float 3s ease-in-out infinite;
+  width:110px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 auto;
+}
+@keyframes float{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-14px);}
+}
+.illus-title{
+  font-family:'Playfair Display',serif;
+  font-size:28px;color:var(--navy);
+  margin:24px 0 10px;line-height:1.25;
+}
+.illus-title em{color:var(--pink);font-style:italic;}
+.illus-sub{
+  font-size:14px;color:var(--slate);
+  line-height:1.7;max-width:300px;margin:0 auto;
+}
+
+.trust-chips{
+  display:flex;flex-wrap:wrap;gap:10px;
+  justify-content:center;margin-top:32px;
+  position:relative;z-index:2;
+}
+.chip{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:20px;padding:6px 14px;
+  font-size:12px;color:var(--slate);font-weight:500;
+  display:flex;align-items:center;gap:6px;
+  box-shadow:var(--shadow-sm);
+}
+.chip i{color:var(--pink);}
+
+/* ── Right Panel (Form) ────────────────── */
+.right-panel{
+  background:var(--white);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:48px 56px;
+}
+.auth-card{width:100%;max-width:420px;}
+
+.auth-header{margin-bottom:32px;}
+.auth-header h1{
+  font-family:'Playfair Display',serif;
+  font-size:30px;font-weight:700;
+  color:var(--navy);margin-bottom:6px;
+}
+.auth-header p{font-size:14px;color:var(--slate);}
+
+/* ── Tab Toggle ────────────────────────── */
+.tab-bar{
+  display:flex;
+  background:var(--bg);
+  border-radius:var(--radius-sm);
+  padding:4px;
+  margin-bottom:28px;
+}
+.tab-btn{
+  flex:1;padding:10px;border:none;
+  background:none;border-radius:10px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:500;
+  color:var(--slate);cursor:pointer;
+  transition:all .25s;
+}
+.tab-btn.active{
+  background:var(--white);
+  color:var(--pink);
+  box-shadow:0 2px 10px rgba(217,107,140,.18);
+}
+
+/* ── Form Panels ───────────────────────── */
+.form-panel{display:none;flex-direction:column;gap:16px;}
+.form-panel.active{display:flex;}
+
+/* ── Form Groups ───────────────────────── */
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{
+  font-size:11px;font-weight:700;
+  color:var(--navy);text-transform:uppercase;letter-spacing:.6px;
+}
+.input-wrap{position:relative;}
+.input-wrap i{
+  position:absolute;left:14px;top:50%;
+  transform:translateY(-50%);
+  color:var(--slate);font-size:14px;
+  pointer-events:none;
+}
+.input-wrap .toggle-eye{
+  left:auto;right:14px;pointer-events:all;cursor:pointer;
+}
+.input-wrap input, .input-wrap select{
+  width:100%;
+  padding:11px 14px 11px 40px;
+  border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;color:var(--navy);
+  background:var(--bg);
+  transition:border-color .2s,box-shadow .2s,background .2s;
+  outline:none;
+}
+.input-wrap input:focus, .input-wrap select:focus{
+  border-color:var(--pink);
+  box-shadow:0 0 0 3px rgba(217,107,140,.12);
+  background:var(--white);
+}
+.input-wrap input.error, .input-wrap select.error{border-color:#e55;}
+
+/* Name row (two fields side by side) */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ── Options / Extras ──────────────────── */
+.form-extras{
+  display:flex;justify-content:space-between;
+  align-items:center;font-size:12.5px;
+}
+.remember{display:flex;align-items:center;gap:7px;color:var(--slate);}
+.remember input[type="checkbox"]{
+  accent-color:var(--pink);width:14px;height:14px;cursor:pointer;
+}
+.forgot-link{
+  color:var(--pink);text-decoration:none;font-weight:500;
+  transition:color .2s;
+}
+.forgot-link:hover{color:var(--pink-dark);}
+
+/* ── Submit Button ─────────────────────── */
+.btn-submit{
+  background:linear-gradient(135deg,var(--pink) 0%,var(--pink-dark) 100%);
+  color:white;border:none;padding:14px;
+  border-radius:30px;width:100%;
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:600;cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:var(--shadow-pink);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:4px;
+}
+.btn-submit:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(217,107,140,.42);
+}
+.btn-submit:active{transform:translateY(0);}
+
+/* ── Error Message ─────────────────────── */
+.err-msg{
+  font-size:12px;color:#e55;display:none;align-items:center;gap:5px;
+}
+.err-msg.show{display:flex;}
+
+/* ── Divider ───────────────────────────── */
+.divider{
+  display:flex;align-items:center;gap:12px;
+  color:var(--slate);font-size:12.5px;
+  margin:4px 0;
+}
+.divider::before,.divider::after{
+  content:'';flex:1;height:1px;background:var(--border);
+}
+
+/* ── Social Buttons ────────────────────── */
+.social-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn-social{
+  background:var(--white);border:1.5px solid var(--border);
+  color:var(--slate);padding:11px;border-radius:12px;
+  font-family:'DM Sans',sans-serif;font-size:13px;
+  font-weight:500;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:all .2s;
+}
+.btn-social:hover{border-color:var(--pink);color:var(--pink);}
+
+/* ── Terms Text ────────────────────────── */
+.terms{
+  font-size:11px;color:var(--slate);text-align:center;line-height:1.6;
+}
+.terms a{color:var(--pink);text-decoration:none;font-weight:500;}
+
+/* ── Success Overlay ───────────────────── */
+.success-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(47,62,78,.4);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:999;opacity:0;visibility:hidden;
+  transition:all .35s ease;
+}
+.success-overlay.show{opacity:1;visibility:visible;}
+.success-card{
+  background:white;border-radius:var(--radius);
+  padding:40px;text-align:center;max-width:320px;
+  box-shadow:0 20px 60px rgba(47,62,78,.3);
+  animation:slideUp .4s cubic-bezier(.34,.69,.68,1.28);
+}
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(30px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.success-icon{
+  width:60px;height:60px;border-radius:50%;
+  background:var(--pink-pale);display:flex;
+  align-items:center;justify-content:center;
+  margin:0 auto 16px;
+}
+.success-icon i{
+  font-size:28px;color:var(--pink);
+}
+.success-title{
+  font-family:'Playfair Display',serif;
+  font-size:20px;color:var(--navy);margin-bottom:8px;
+}
+.success-sub{font-size:13px;color:var(--slate);margin-bottom:24px;}
+.btn-continue{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--pink),var(--pink-dark));
+  color:white;padding:11px 28px;border-radius:24px;
+  text-decoration:none;font-weight:600;font-size:14px;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:var(--shadow-pink);
+  cursor:pointer;
+}
+.btn-continue:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(217,107,140,.42);
+}
+
+/* ── Alert Message ─────────────────────── */
+.alert-msg{
+  padding:12px 14px;border-radius:var(--radius-sm);
+  font-size:13px;margin-bottom:16px;
+  display:none;align-items:center;gap:8px;
+}
+.alert-msg.show{display:flex;}
+.alert-msg.error{background:var(--red);background:#ffe6e6;color:#c00;}
+.alert-msg.success{background:var(--green);background:#e8f8f3;color:var(--green);}
+
+/* ── Responsive ────────────────────────── */
+@media(max-width:900px){
+  .page-wrap{grid-template-columns:1fr;}
+  .left-panel{display:none;}
+  .right-panel{padding:24px;}
+  .auth-card{max-width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <!-- ══ LEFT PANEL ══════════════════════ -->
+  <div class="left-panel">
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="fas fa-heart"></i>
+      </div>
+      <div class="brand-name">Maternix</div>
+    </div>
+
+    <div class="illus-wrap">
+      <div class="illus-icon">
+        <i class="fas fa-user-circle"></i>
+      </div>
+      <h3 class="illus-title">Welcome to <em>Maternix</em></h3>
+      <p class="illus-sub">Your personal maternal health companion, designed with care for every stage of your journey.</p>
+    </div>
+
+    <div class="trust-chips">
+      <div class="chip">
+        <i class="fas fa-shield-alt"></i> Secure & Private
+      </div>
+      <div class="chip">
+        <i class="fas fa-check-circle"></i> Doctor Verified
+      </div>
+      <div class="chip">
+        <i class="fas fa-star"></i> Trusted by 10K+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ═════════════════════ -->
+  <div class="right-panel">
+    <div class="auth-card">
+
+      <!-- Header -->
+      <div class="auth-header">
+        <h1 id="authTitle">Welcome Back</h1>
+        <p id="authSubtitle">Sign in to your Maternix account or create a new one.</p>
+      </div>
+
+      <!-- Alert Messages -->
+      <div class="alert-msg error" id="errorAlert"></div>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn" onclick="switchTab('signup')">Create Account</button>
+        <button class="tab-btn" onclick="switchTab('doctor')">Doctor Login</button>
+      </div>
+
+      <!-- ── User Sign In Form ─────────── -->
+      <form class="form-panel active" id="loginForm" novalidate onsubmit="handleUserLogin(event)">
+
+        <div class="field">
+          <label>Username or Email</label>
+          <div class="input-wrap">
+            <i class="fas fa-user"></i>
+            <input type="text" id="loginUsername" placeholder="Enter username or email">
+          </div>
+          <span class="err-msg" id="loginUsernameErr"><i class="fas fa-exclamation-circle"></i> Please enter username or email.</span>
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="loginPwd" placeholder="Your password">
+            <i class="fas fa-eye toggle-eye" onclick="togglePwd('loginPwd',this)"></i>
+          </div>
+          <span class="err-msg" id="loginPwdErr"><i class="fas fa-exclamation-circle"></i> Password cannot be empty.</span>
+        </div>
+
+        <div class="form-extras">
+          <label class="remember">
+            <input type="checkbox"> Remember me
+          </label>
+          <a class="forgot-link" href="#">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          Sign In &nbsp;<i class="fas fa-arrow-right"></i>
+        </button>
+
+        <p style="text-align:center;font-size:12px;color:var(--slate);margin-top:12px;">
+          Demo credentials: username: <strong>priya</strong> | password: <strong>password123</strong>
+        </p>
+      </form>
+
+      <!-- ── User Sign Up Form ─────────── -->
+      <form class="form-panel" id="signupForm" novalidate onsubmit="handleUserSignup(event)">
+
+        <div class="field-row">
+          <div class="field">
+            <label>First Name</label>
+            <div class="input-wrap">
+              <i class="fas fa-user"></i>
+              <input type="text" id="signupFirst" placeholder="Priya">
+            </div>
+            <span class="err-msg" id="signupFirstErr"><i class="fas fa-exclamation-circle"></i> Required.</span>
+          </div>
+          <div class="field">
+            <label>Last Name</label>
+            <div class="input-wrap">
+              <i class="fas fa-user"></i>
+              <input type="text" id="signupLast" placeholder="Sharma">
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <i class="fas fa-envelope"></i>
+            <input type="email" id="signupEmail" placeholder="priya@example.com">
+          </div>
+          <span class="err-msg" id="signupEmailErr"><i class="fas fa-exclamation-circle"></i> Please enter a valid email.</span>
+        </div>
+
+        <div class="field">
+          <label>Create Username</label>
+          <div class="input-wrap">
+            <i class="fas fa-user-tag"></i>
+            <input type="text" id="signupUsername" placeholder="Choose a unique username">
+          </div>
+          <span class="err-msg" id="signupUsernameErr"><i class="fas fa-exclamation-circle"></i> Username required (4+ chars).</span>
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <div class="input-wrap">
+            <i class="fas fa-info-circle"></i>
+            <select id="signupStatus">
+              <option value="">Select your status</option>
+              <option value="pregnant">Pregnant</option>
+              <option value="postnatal">Postnatal Mother</option>
+            </select>
+          </div>
+          <span class="err-msg" id="signupStatusErr"><i class="fas fa-exclamation-circle"></i> Please select a status.</span>
+        </div>
+
+        <div class="field">
+          <label>Create Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="signupPwd" placeholder="Min. 8 characters">
+            <i class="fas fa-eye toggle-eye" onclick="togglePwd('signupPwd',this)"></i>
+          </div>
+          <span class="err-msg" id="signupPwdErr"><i class="fas fa-exclamation-circle"></i> Password must be at least 8 characters.</span>
+        </div>
+
+        <div class="field">
+          <label>Confirm Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="signupConfirm" placeholder="Repeat your password">
+            <i class="fas fa-eye toggle-eye" onclick="togglePwd('signupConfirm',this)"></i>
+          </div>
+          <span class="err-msg" id="signupConfirmErr"><i class="fas fa-exclamation-circle"></i> Passwords do not match.</span>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          Create Account &nbsp;<i class="fas fa-arrow-right"></i>
+        </button>
+
+        <p class="terms">
+          By registering you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+        </p>
+      </form>
+
+      <!-- ── Doctor Login Form ────────── -->
+      <form class="form-panel" id="doctorForm" novalidate onsubmit="handleDoctorLogin(event)">
+
+        <div class="field">
+          <label>Doctor ID</label>
+          <div class="input-wrap">
+            <i class="fas fa-id-card"></i>
+            <input type="text" id="doctorId" placeholder="Enter your doctor ID">
+          </div>
+          <span class="err-msg" id="doctorIdErr"><i class="fas fa-exclamation-circle"></i> Please enter doctor ID.</span>
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="doctorPwd" placeholder="Your password">
+            <i class="fas fa-eye toggle-eye" onclick="togglePwd('doctorPwd',this)"></i>
+          </div>
+          <span class="err-msg" id="doctorPwdErr"><i class="fas fa-exclamation-circle"></i> Password cannot be empty.</span>
+        </div>
+
+        <div class="form-extras">
+          <label class="remember">
+            <i class="fas fa-stethoscope"></i> Doctor Portal
+          </label>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          Sign In &nbsp;<i class="fas fa-arrow-right"></i>
+        </button>
+
+        <p style="text-align:center;font-size:12px;color:var(--slate);margin-top:12px;">
+          Demo credentials: ID: <strong>DOC001</strong> | password: <strong>doctor123</strong>
+        </p>
+      </form>
+
+    </div><!-- /auth-card -->
+  </div><!-- /right-panel -->
+</div><!-- /page-wrap -->
+
+<!-- ══ Success Overlay ══════════════════ -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <h2 class="success-title" id="successTitle">Success!</h2>
+    <p class="success-sub" id="successMsg">Redirecting to your dashboard...</p>
+    <div style="margin-top:24px;">
+      <div style="width:8px;height:8px;background:var(--pink);border-radius:50%;margin:0 auto;animation:pulse 1.5s infinite;"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pulse{
+  0%, 100%{opacity:1;transform:scale(1);}
+  50%{opacity:.5;transform:scale(1.2);}
+}
+</style>
+
+<script>
+// Base API path (empty string for same-origin, or configured via window.API_BASE)
+const API_BASE = window.API_BASE || '';
+
+// ─ Local Storage Initialization (Clean Demo Metadata - No Plaintext Passwords) ─
+function initializeDatabase() {
+  const db = {
+    users: [
+      {
+        id: 1,
+        firstName: 'Priya',
+        lastName: 'Sharma',
+        email: 'priya@example.com',
+        username: 'priya',
+        status: 'pregnant',
+        dueDate: '2026-08-15',
+        currentWeek: 28,
+        childrenCount: 0
+      }
+    ],
+    doctors: [
+      {
+        id: 'DOC001',
+        name: 'Dr. Rajesh Kumar',
+        specialization: 'Obstetrics & Gynecology',
+        hospital: 'City Medical Center'
+      }
+    ]
+  };
+  
+  if (!localStorage.getItem('maternixDB')) {
+    localStorage.setItem('maternixDB', JSON.stringify(db));
+  }
+}
+
+// ─ Helper Functions ─
+function showErr(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('show', show);
+}
+
+function markErr(id, hasErr) {
+  const inp = document.getElementById(id);
+  if (inp) inp.classList.toggle('error', hasErr);
+}
+
+function showAlert(msg, type) {
+  const alert = document.getElementById('errorAlert');
+  alert.textContent = msg;
+  alert.className = `alert-msg show ${type}`;
+  setTimeout(() => alert.classList.remove('show'), 4000);
+}
+
+function togglePwd(id, icon) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    inp.type = 'password';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', 
+      (i === 0 && tab === 'login') || 
+      (i === 1 && tab === 'signup') || 
+      (i === 2 && tab === 'doctor')
+    );
+  });
+  
+  document.getElementById('loginForm').classList.toggle('active', tab === 'login');
+  document.getElementById('signupForm').classList.toggle('active', tab === 'signup');
+  document.getElementById('doctorForm').classList.toggle('active', tab === 'doctor');
+  
+  const title = document.getElementById('authTitle');
+  const subtitle = document.getElementById('authSubtitle');
+  
+  if (tab === 'login') {
+    title.textContent = 'Welcome Back';
+    subtitle.textContent = 'Sign in to your Maternix account.';
+  } else if (tab === 'signup') {
+    title.textContent = 'Join Maternix';
+    subtitle.textContent = 'Create your account to begin your care journey.';
+  } else {
+    title.textContent = 'Doctor Portal';
+    subtitle.textContent = 'Access your patient management dashboard.';
+  }
+  
+  document.getElementById('errorAlert').classList.remove('show');
+}
+
+// ─ User Login Handler ─
+async function handleUserLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim();
+  const pwd = document.getElementById('loginPwd').value;
+  let valid = true;
+  
+  const usernameOk = username.length > 0;
+  showErr('loginUsernameErr', !usernameOk);
+  markErr('loginUsername', !usernameOk);
+  if (!usernameOk) valid = false;
+  
+  const pwdOk = pwd.length > 0;
+  showErr('loginPwdErr', !pwdOk);
+  markErr('loginPwd', !pwdOk);
+  if (!pwdOk) valid = false;
+  
+  if (valid) {
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/login-mother`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, pwd }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const userRow = data.user || data;
+        const user = {
+          id: userRow.mother_id || userRow.id,
+          motherId: userRow.mother_id || userRow.id,
+          firstName: userRow.first_name || userRow.firstName,
+          lastName: userRow.last_name || userRow.lastName,
+          email: userRow.email,
+          username: userRow.username,
+          status: userRow.status || (userRow.pregnancy_stage > 0 ? 'pregnant' : 'postnatal'),
+          dueDate: userRow.due_date || userRow.dueDate,
+          currentWeek: userRow.current_week || userRow.currentWeek,
+          bloodGroup: userRow.blood_group || userRow.bloodGroup
+        };
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('userRole', 'user');
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+        }
+        document.getElementById('successMsg').textContent = `Welcome back, ${user.firstName}!`;
+        document.getElementById('successOverlay').classList.add('show');
+        setTimeout(() => window.location.href = 'dashboard.html', 1500);
+        return;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        showAlert(errData.error || 'Invalid username or password.', 'error');
+        return;
+      }
+    } catch (err) {
+      console.warn('[Maternix] Backend login error:', err.message);
+      showAlert('Unable to reach server. Please check your connection.', 'error');
+      return;
+    }
+  }
+}
+
+// ─ User Signup Handler ─
+async function handleUserSignup(e) {
+  e.preventDefault();
+  const first = document.getElementById('signupFirst').value.trim();
+  const last = document.getElementById('signupLast').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const username = document.getElementById('signupUsername').value.trim();
+  const status = document.getElementById('signupStatus').value;
+  const pwd = document.getElementById('signupPwd').value;
+  const confirm = document.getElementById('signupConfirm').value;
+  let valid = true;
+  
+  const firstOk = first.length > 0;
+  showErr('signupFirstErr', !firstOk);
+  markErr('signupFirst', !firstOk);
+  if (!firstOk) valid = false;
+  
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  showErr('signupEmailErr', !emailOk);
+  markErr('signupEmail', !emailOk);
+  if (!emailOk) valid = false;
+  
+  const usernameOk = username.length >= 4;
+  showErr('signupUsernameErr', !usernameOk);
+  markErr('signupUsername', !usernameOk);
+  if (!usernameOk) valid = false;
+  
+  const statusOk = status.length > 0;
+  showErr('signupStatusErr', !statusOk);
+  markErr('signupStatus', !statusOk);
+  if (!statusOk) valid = false;
+  
+  const pwdOk = pwd.length >= 8;
+  showErr('signupPwdErr', !pwdOk);
+  markErr('signupPwd', !pwdOk);
+  if (!pwdOk) valid = false;
+  
+  const confirmOk = pwd === confirm && confirm.length > 0;
+  showErr('signupConfirmErr', !confirmOk);
+  markErr('signupConfirm', !confirmOk);
+  if (!confirmOk) valid = false;
+  
+  if (valid) {
+    const db = JSON.parse(localStorage.getItem('maternixDB')) || { users: [] };
+    
+    // Check if username exists in local DB
+    if (db.users.some(u => u.username === username)) {
+      showAlert('This username is already taken. Please choose another.', 'error');
+      return;
+    }
+    
+    // Create new user object (NEVER store plaintext password in browser)
+    const newUser = {
+      firstName: first,
+      lastName: last,
+      email: email,
+      username: username,
+      status: status,
+      dueDate: status === 'pregnant' ? new Date(Date.now() + 280*24*60*60*1000).toISOString().split('T')[0] : null,
+      currentWeek: status === 'pregnant' ? 1 : 0,
+      childrenCount: status === 'postnatal' ? 1 : 0,
+      createdAt: new Date().toISOString()
+    };
+    
+    // ── Insert into Backend ──────────────────────────────────
+    try {
+      const resp = await fetch(`${API_BASE}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first, last, email, username, pwd, status, 
+          dueDate: newUser.dueDate
+        }),
+        credentials: 'include'
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        showAlert(errData.error || 'Signup failed.', 'error');
+        return;
+      }
+
+      const data = await resp.json();
+      newUser.motherId = data.motherId;
+      newUser.id = data.motherId;
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+      }
+    } catch (err) {
+      console.warn('[Maternix] Backend signup error:', err.message);
+      showAlert('Server error during registration. Please try again.', 'error');
+      return;
+    }
+    // ─────────────────────────────────────────────────────────
+
+    db.users.push(newUser);
+    localStorage.setItem('maternixDB', JSON.stringify(db));
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    localStorage.setItem('userRole', 'user');
+    
+    document.getElementById('successMsg').textContent = `Welcome to Maternix, ${first}!`;
+    document.getElementById('successOverlay').classList.add('show');
+    setTimeout(() => window.location.href = 'questionnaire.html', 1500);
+  }
+}
+
+// ─ Doctor Login Handler ─
+async function handleDoctorLogin(e) {
+  e.preventDefault();
+  const docId = document.getElementById('doctorId').value.trim();
+  const pwd = document.getElementById('doctorPwd').value;
+  let valid = true;
+  
+  const idOk = docId.length > 0;
+  showErr('doctorIdErr', !idOk);
+  markErr('doctorId', !idOk);
+  if (!idOk) valid = false;
+  
+  const pwdOk = pwd.length > 0;
+  showErr('doctorPwdErr', !pwdOk);
+  markErr('doctorPwd', !pwdOk);
+  if (!pwdOk) valid = false;
+  
+  if (valid) {
+    try {
+      const resp = await fetch(`${API_BASE}/api/auth/login-doctor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId, pwd }),
+        credentials: 'include'
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const docRow = data.doctor || data;
+        const doctor = {
+          id: docRow.doctor_id || docRow.id,
+          name: docRow.name,
+          specialization: docRow.specialization
+        };
+        localStorage.setItem('currentDoctor', JSON.stringify(doctor));
+        localStorage.setItem('userRole', 'doctor');
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+        }
+        document.getElementById('successMsg').textContent = `Welcome, ${doctor.name}!`;
+        document.getElementById('successOverlay').classList.add('show');
+        setTimeout(() => window.location.href = 'doctor-dashboard.html', 1500);
+        return;
+      } else {
+        const errData = await resp.json().catch(() => ({}));
+        showAlert(errData.error || 'Invalid doctor ID or password.', 'error');
+        return;
+      }
+    } catch (err) {
+      console.warn('[Maternix] Backend doctor login error:', err.message);
+      showAlert('Unable to reach server. Please check your connection.', 'error');
+      return;
+    }
+  }
+}
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', initializeDatabase);
+</script>
+</body>
+</html>

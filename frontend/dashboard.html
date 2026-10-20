@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maternix — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ── Variables ─────────────────────────── */
+:root{
+  --pink:#d96b8c; --pink-light:#f5d6e0; --pink-pale:#fdf0f4; --pink-dark:#c25577;
+  --blue:#4a9bd6; --blue-light:#e6f1fb;
+  --navy:#2f3e4e; --slate:#506680;
+  --bg:#f7f9fc; --white:#ffffff; --border:#e6eef5;
+  --green:#3dbf91; --green-light:#e8f8f3;
+  --orange:#f0956a; --orange-light:#fef3ee;
+  --red:#e55a5a; --red-light:#ffeaea;
+  --purple:#9b7fd4; --purple-light:#f0eafa;
+  --shadow-sm:0 2px 12px rgba(47,62,78,.07);
+  --shadow-md:0 8px 32px rgba(47,62,78,.11);
+  --shadow-pink:0 6px 22px rgba(217,107,140,.24);
+  --radius:18px; --radius-sm:12px;
+  --sidebar:260px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);color:var(--navy);
+  display:flex;min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ══ SIDEBAR ══════════════════════════════ */
+.sidebar{
+  width:var(--sidebar);min-height:100vh;
+  background:var(--white);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:0 0 24px;
+  position:fixed;left:0;top:0;bottom:0;
+  z-index:200;overflow-y:auto;
+}
+.sidebar-brand{
+  padding:24px 20px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.brand-dot{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--pink),var(--pink-dark));
+  display:flex;align-items:center;justify-content:center;
+  color:white;font-size:16px;
+}
+.brand-name{
+  font-family:'Playfair Display',serif;
+  font-size:22px;font-weight:700;color:var(--pink);
+}
+.brand-name em{color:var(--blue);font-style:normal;}
+
+.sidebar-user{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border);
+}
+.avatar-wrap{
+  display:flex;align-items:center;gap:12px;
+}
+.avatar{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,var(--pink-pale),var(--blue-light));
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;border:2px solid var(--pink-light);
+}
+.avatar-info .name{font-size:14px;font-weight:600;color:var(--navy);}
+.avatar-info .role{font-size:11.5px;color:var(--slate);}
+.badge{
+  display:inline-block;background:var(--pink-pale);color:var(--pink);
+  padding:2px 8px;border-radius:10px;
+  font-size:10.5px;font-weight:700;margin-top:3px;
+}
+
+.nav-section{padding:12px 0;}
+.nav-label{
+  font-size:10px;font-weight:700;color:var(--slate);
+  letter-spacing:1px;text-transform:uppercase;
+  padding:4px 20px 8px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 20px;
+  color:var(--slate);font-size:13.5px;font-weight:500;
+  cursor:pointer;border-radius:0;
+  transition:all .2s;position:relative;
+  text-decoration:none;
+}
+.nav-item:hover{background:var(--bg);color:var(--navy);}
+.nav-item.active{
+  background:var(--pink-pale);color:var(--pink);font-weight:600;
+}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:6px;bottom:6px;
+  width:3px;background:var(--pink);border-radius:0 3px 3px 0;
+}
+.nav-item i{width:18px;text-align:center;font-size:14px;}
+
+.sidebar-footer{margin-top:auto;padding:16px 20px 0;}
+.btn-logout{
+  display:flex;align-items:center;gap:10px;
+  color:var(--slate);font-size:13px;font-weight:500;
+  cursor:pointer;padding:10px 12px;border-radius:var(--radius-sm);
+  background:none;border:1.5px solid var(--border);width:100%;
+  font-family:'DM Sans',sans-serif;transition:all .2s;
+}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+/* ══ MAIN CONTENT ══════════════════════════ */
+.main{
+  margin-left:var(--sidebar);
+  flex:1;padding:0;
+  display:flex;flex-direction:column;
+}
+
+.topbar{
+  background:var(--white);
+  border-bottom:1px solid var(--border);
+  padding:16px 36px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.topbar-left h2{
+  font-size:16px;font-weight:600;color:var(--navy);
+}
+.topbar-left p{font-size:12px;color:var(--slate);margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.icon-btn{
+  width:36px;height:36px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--slate);cursor:pointer;
+  transition:all .2s;font-size:13px;
+  position:relative;
+}
+.icon-btn:hover{border-color:var(--pink);color:var(--pink);}
+.topbar-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--pink-pale),var(--blue-light));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;cursor:pointer;border:2px solid var(--pink-light);
+}
+
+.content{padding:32px 36px;flex:1;overflow-y:auto;}
+.panel{display:none;}
+.panel.active{display:block;animation:fadeIn .35s ease both;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+.section-head{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  margin-bottom:20px;flex-wrap:wrap;gap:12px;
+}
+.section-head h2{
+  font-family:'Playfair Display',serif;
+  font-size:24px;color:var(--navy);
+}
+.section-head h2 span{color:var(--pink);}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+
+.card{
+  background:var(--white);border-radius:var(--radius);
+  border:1.5px solid var(--border);padding:24px;
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .3s,transform .3s;
+}
+.card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.card-header{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;margin-bottom:16px;
+}
+.card-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+.icon-p{background:var(--pink-pale);color:var(--pink);}
+.icon-b{background:var(--blue-light);color:var(--blue);}
+.icon-g{background:var(--green-light);color:var(--green);}
+.icon-o{background:var(--orange-light);color:var(--orange);}
+
+.card-title{
+  font-family:'Playfair Display',serif;
+  font-size:16px;color:var(--navy);margin-bottom:3px;
+}
+.card-sub{font-size:12px;color:var(--slate);}
+
+.info-row{
+  display:flex;justify-content:space-between;
+  align-items:center;padding:8px 0;
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+.info-row:last-child{border-bottom:none;}
+.info-row .lbl{color:var(--slate);font-weight:500;}
+.info-row .val{color:var(--navy);font-weight:600;text-align:right;}
+
+.welcome-banner{
+  background:linear-gradient(135deg,var(--navy) 0%,#3a5068 100%);
+  border-radius:var(--radius);padding:32px 36px;
+  position:relative;overflow:hidden;margin-bottom:24px;
+  color:white;
+}
+.welcome-banner::before{
+  content:'';position:absolute;
+  width:280px;height:280px;border-radius:50%;
+  background:rgba(217,107,140,.15);
+  top:-80px;right:-60px;
+}
+.welcome-banner::after{
+  content:'';position:absolute;
+  width:180px;height:180px;border-radius:50%;
+  background:rgba(74,155,214,.12);
+  bottom:-60px;left:40%;
+}
+.wb-inner{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;}
+.wb-left h1{
+  font-family:'Playfair Display',serif;
+  font-size:26px;color:white;margin-bottom:6px;
+}
+.wb-left p{font-size:14px;color:rgba(255,255,255,.7);}
+.wb-stats{display:flex;gap:24px;}
+.wb-stat{text-align:center;}
+.wb-stat .num{
+  font-family:'Playfair Display',serif;
+  font-size:22px;color:white;font-weight:700;
+}
+.wb-stat .lbl{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px;}
+
+/* ─ Countdown Card ─ */
+.countdown-card{
+  background:linear-gradient(135deg,#fdf0f4 0%,#f0e8f8 100%);
+  border-radius:var(--radius);padding:32px;
+  text-align:center;border:none;box-shadow:var(--shadow-sm);
+}
+.countdown-timer{
+  display:flex;justify-content:center;gap:16px;margin:20px 0;
+  flex-wrap:wrap;
+}
+.countdown-unit{
+  background:white;padding:16px 12px;border-radius:12px;
+  border:1.5px solid var(--border);min-width:70px;
+}
+.countdown-num{
+  font-family:'Playfair Display',serif;
+  font-size:28px;color:var(--pink);font-weight:700;
+  line-height:1;
+}
+.countdown-label{
+  font-size:11px;color:var(--slate);
+  text-transform:uppercase;font-weight:600;
+  margin-top:6px;letter-spacing:.5px;
+}
+
+.countdown-card h3{
+  font-family:'Playfair Display',serif;
+  font-size:18px;color:var(--navy);margin-bottom:8px;
+}
+.countdown-card p{
+  font-size:13px;color:var(--slate);margin-bottom:16px;
+}
+
+/* ─ Baby Info Form ─ */
+.baby-form{
+  display:flex;flex-direction:column;gap:16px;
+}
+.form-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+}
+.form-group{
+  display:flex;flex-direction:column;gap:6px;
+}
+.form-group label{
+  font-size:12px;font-weight:600;
+  color:var(--navy);text-transform:uppercase;
+  letter-spacing:.5px;
+}
+.form-group input, .form-group select{
+  padding:10px 12px;border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;
+  font-size:14px;color:var(--navy);background:var(--white);
+  transition:border-color .2s;
+}
+.form-group input:focus, .form-group select:focus{
+  outline:none;border-color:var(--pink);
+  box-shadow:0 0 0 3px rgba(217,107,140,.12);
+}
+.btn-add{
+  background:linear-gradient(135deg,var(--pink),var(--pink-dark));
+  color:white;border:none;padding:11px 24px;
+  border-radius:24px;font-weight:600;font-size:13px;
+  cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:fit-content;
+  box-shadow:var(--shadow-pink);
+}
+.btn-add:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 28px rgba(217,107,140,.3);
+}
+
+/* ─ Baby Card Display ─ */
+.baby-card{
+  background:var(--white);border-radius:var(--radius-sm);
+  padding:16px;border:1.5px solid var(--pink-light);
+  margin-top:12px;
+}
+.baby-card-header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:12px;
+}
+.baby-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:var(--pink-pale);display:flex;
+  align-items:center;justify-content:center;
+  color:var(--pink);font-size:18px;
+}
+.baby-card-title{
+  font-weight:600;color:var(--navy);flex:1;
+}
+.btn-remove{
+  background:none;border:none;color:var(--red);
+  cursor:pointer;font-size:16px;transition:all .2s;
+  padding:4px;
+}
+.btn-remove:hover{transform:scale(1.2);}
+.baby-details{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  font-size:13px;
+}
+.detail-item{
+  display:flex;flex-direction:column;gap:3px;
+}
+.detail-label{
+  color:var(--slate);font-weight:500;font-size:11px;
+}
+.detail-value{
+  color:var(--navy);font-weight:600;
+}
+
+/* ── Responsive ────────────────────────── */
+@media(max-width:1024px){
+  .grid-3{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+}
+@media(max-width:768px){
+  .sidebar{width:70px;padding:0;}
+  .sidebar-brand, .sidebar-user, .nav-label, .nav-item span{display:none;}
+  .nav-item{justify-content:center;padding:16px 0;}
+  .nav-item i{margin:0;}
+  .sidebar-footer{display:none;}
+  .main{margin-left:70px;}
+  .topbar{padding:12px 20px;}
+  .content{padding:20px;}
+  .grid-3{grid-template-columns:1fr;}
+  .countdown-timer{flex-direction:column;}
+  .form-row{grid-template-columns:1fr;}
+}
+</style>
+<!-- Script imports removed -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* Modal overlay styling for SOS */
+.sos-modal {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000;
+}
+.sos-modal.show { display: flex; }
+.sos-content {
+  background: white; padding: 30px; border-radius: 20px; width: 400px;
+  max-width: 90%; text-align: center;
+}
+.sos-content h2 { color: #d9534f; margin-bottom: 20px; }
+
+.btn-primary {
+  width: 100%; padding: 12px; border: none; border-radius: 8px;
+  background: var(--pink); color: white; font-family: inherit;
+  font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: var(--pink-dark); box-shadow: 0 4px 15px rgba(217,107,140,0.3);
+}
+
+/* ── Appointment Booking & Management Styles ── */
+.btn-book-action {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; font-weight: 600; font-size: 13.5px;
+  border-radius: var(--radius-sm); cursor: pointer;
+  background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+  color: white; border: none; box-shadow: var(--shadow-pink);
+  transition: all 0.2s ease;
+}
+.btn-book-action:hover {
+  transform: translateY(-2px); box-shadow: 0 8px 24px rgba(217,107,140,0.35);
+}
+.modal-backdrop {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(47,62,78,.45); backdrop-filter: blur(5px);
+  z-index: 2500; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-backdrop.show { display: flex; }
+.modal-box {
+  background: var(--white); border-radius: 20px;
+  padding: 28px 32px; max-width: 540px; width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(47,62,78,.25);
+  animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.modal-head h3 {
+  font-family: 'Playfair Display', serif; font-size: 21px; color: var(--navy); font-weight: 700;
+}
+.modal-close-btn {
+  background: none; border: none; font-size: 24px; color: var(--slate);
+  cursor: pointer; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.modal-close-btn:hover { background: var(--pink-pale); color: var(--pink); }
+.form-field { margin-bottom: 16px; }
+.form-field label {
+  display: block; font-size: 11.5px; font-weight: 700; color: var(--slate);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+}
+.form-field input, .form-field select, .form-field textarea {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 13.5px;
+  color: var(--navy); background: var(--white); outline: none; transition: all 0.2s; box-sizing: border-box;
+}
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+  border-color: var(--pink); box-shadow: 0 0 0 3px rgba(217,107,140,0.15);
+}
+.slots-container {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px; margin-top: 8px; max-height: 140px; overflow-y: auto; padding: 2px;
+}
+.slot-pill {
+  padding: 8px 6px; border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--white); font-size: 12px; font-weight: 600; color: var(--navy);
+  cursor: pointer; text-align: center; transition: all 0.2s; font-family: inherit;
+}
+.slot-pill:hover:not(:disabled) {
+  border-color: var(--pink); color: var(--pink); background: var(--pink-pale);
+}
+.slot-pill.active {
+  background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+  color: white !important; border-color: transparent !important;
+  box-shadow: var(--shadow-pink); font-weight: 700;
+}
+.slot-pill:disabled {
+  background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0;
+  cursor: not-allowed; text-decoration: line-through; opacity: 0.6;
+}
+.appt-card-v2 {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 14px;
+  transition: all 0.2s ease;
+}
+.appt-card-v2:hover {
+  border-color: var(--pink-light); box-shadow: var(--shadow-sm); transform: translateY(-1px);
+}
+.appt-card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.appt-datetime-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 600; color: var(--navy);
+  background: var(--bg); padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border);
+}
+.status-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.status-tag.pending { background: var(--orange-light); color: var(--orange); }
+.status-tag.scheduled { background: var(--blue-light); color: var(--blue); }
+.status-tag.rescheduled { background: var(--purple-light); color: var(--purple); }
+.status-tag.completed { background: var(--green-light); color: var(--green); }
+.status-tag.cancelled, .status-tag.rejected { background: var(--red-light); color: var(--red); }
+.appt-actions {
+  display: flex; gap: 8px; margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--border); justify-content: flex-end;
+}
+.btn-action-sm {
+  padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 8px;
+  cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-action-view {
+  background: var(--bg); border: 1px solid var(--border); color: var(--slate);
+}
+.btn-action-view:hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+.btn-action-cancel {
+  background: none; border: 1px solid var(--red-light); color: var(--red);
+}
+.btn-action-cancel:hover { background: var(--red); color: white; border-color: var(--red); }
+#toastAlert {
+  position: fixed; top: 24px; right: 24px; z-index: 3000;
+  padding: 12px 20px; border-radius: 12px; background: var(--navy);
+  color: white; font-size: 13.5px; font-weight: 500; display: none;
+  align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(47,62,78,.25);
+  animation: slideDown 0.3s ease;
+}
+#toastAlert.show { display: flex; }
+#toastAlert.success { background: #2f3e4e; border-left: 4px solid var(--green); }
+#toastAlert.error { background: #2f3e4e; border-left: 4px solid var(--red); }
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ═════════════════════════════ -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-dot">
+      <i class="fas fa-heart"></i>
+    </div>
+    <div class="brand-name">Maternix</div>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="avatar-wrap">
+      <div class="avatar">
+        <i class="fas fa-user"></i>
+      </div>
+      <div class="avatar-info">
+        <div class="name" id="sidebarUserName">User</div>
+        <div class="role" id="sidebarUserRole">Pregnant</div>
+        <span class="badge" id="sidebarStatus">Active</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Menu</div>
+    <div class="nav-item active" onclick="switchPanel('overview', event)">
+      <i class="fas fa-home"></i> <span>Overview</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('health', event)">
+      <i class="fas fa-heartbeat"></i> <span>Health</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('infant', event)">
+      <i class="fas fa-baby"></i> <span>Infant</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('medications', event)">
+      <i class="fas fa-capsules"></i> <span>Medications</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('articles', event)">
+      <i class="fas fa-book"></i> <span>Articles</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('appointments', event)">
+      <i class="fas fa-calendar"></i> <span>Appointments</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('prescriptions', event)">
+      <i class="fas fa-file-medical"></i> <span>Prescriptions</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ MAIN CONTENT ═════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h2 id="panelTitle">Dashboard Overview</h2>
+      <p id="panelSubtitle">Welcome back! Here's your maternal care summary.</p>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn"><i class="fas fa-bell"></i></button>
+      <button class="icon-btn"><i class="fas fa-cog"></i></button>
+      <div class="topbar-avatar">
+        <i class="fas fa-user"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    
+    <!-- SOS FLOATING BUTTON -->
+    <div style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;" id="sosContainer">
+      <button onclick="document.getElementById('sosModal').classList.add('show')" style="background-color: #d9534f; color: white; border: none; border-radius: 50%; width: 60px; height: 60px; box-shadow: var(--shadow-md); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; animation: pulse 2s infinite;">
+        <i class="fas fa-phone-alt"></i>
+      </button>
+    </div>
+    <style>@keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(217,83,79, 0.7);} 70% {box-shadow: 0 0 0 15px rgba(217,83,79, 0);} 100% {box-shadow: 0 0 0 0 rgba(217,83,79, 0);} }</style>
+
+    <!-- SOS MODAL -->
+    <div id="sosModal" class="sos-modal">
+      <div class="sos-content">
+        <h2><i class="fas fa-exclamation-triangle"></i> Emergency SOS</h2>
+        <p style="margin-bottom:20px;">Your emergency contacts and hospital routing are listed below.</p>
+        
+        <div style="text-align:left; background: var(--bg); padding:15px; border-radius:12px; margin-bottom:15px;" id="sosContactsDisplay">
+          Loading contacts...
+        </div>
+        
+        <div style="text-align:left; background: var(--blue-light); padding:15px; border-radius:12px; margin-bottom:20px;" id="sosHospitalDisplay">
+          Loading hospital...
+        </div>
+
+        <button onclick="document.getElementById('sosModal').classList.remove('show')" class="btn-primary" style="background:var(--slate);">Close</button>
+      </div>
+    </div>
+
+    <!-- ══ OVERVIEW PANEL ════════════════════════ -->
+    <div class="panel active" id="overviewPanel">
+      <div class="welcome-banner">
+        <div class="wb-inner">
+          <div class="wb-left">
+            <h1>Welcome, <span id="welcomeName">User</span></h1>
+            <p>Let's monitor your pregnancy journey with care and precision.</p>
+          </div>
+          <div class="wb-stats">
+            <div class="wb-stat">
+              <div class="num" id="weekNum">28</div>
+              <div class="lbl">Weeks</div>
+            </div>
+            <div class="wb-stat">
+              <div class="num" id="daysNum">0</div>
+              <div class="lbl">Days to go</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <!-- Health Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Your Health</div>
+              <div class="card-sub">Current Status</div>
+            </div>
+            <div class="card-icon icon-g">
+              <i class="fas fa-heart-pulse"></i>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Blood Pressure</span>
+            <span class="val" id="bpOverviewVal">--/--</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Weight</span>
+            <span class="val" id="userWeight">-- kg</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Last Check-up</span>
+            <span class="val" id="lastCheckupVal">Loading...</span>
+          </div>
+        </div>
+
+        <!-- Nutrition Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Nutrition</div>
+              <div class="card-sub">Daily Progress</div>
+            </div>
+            <div class="card-icon icon-b">
+              <i class="fas fa-apple-alt"></i>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Calories</span>
+            <span class="val">2,150 / 2,500</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Protein</span>
+            <span class="val">75 / 80g</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Water Intake</span>
+            <span class="val">1.8 / 2.5L</span>
+          </div>
+        </div>
+
+        <!-- Medication Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Medications</div>
+              <div class="card-sub">Prescriptions</div>
+            </div>
+            <div class="card-icon icon-p">
+              <i class="fas fa-capsules"></i>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Iron Supplement</span>
+            <span class="val">✓ Active</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Folic Acid</span>
+            <span class="val">✓ Active</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Calcium</span>
+            <span class="val">✓ Active</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Chart Card -->
+      <div class="card" style="margin-top:24px;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Historical Health Trend</div>
+            <div class="card-sub">Blood Pressure & Weight Tracking</div>
+          </div>
+        </div>
+        <div style="position: relative; height:300px; width:100%; margin-top:20px;">
+          <canvas id="vitalsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HEALTH PANEL ══════════════════════════ -->
+    <div class="panel" id="healthPanel">
+      <div class="section-head">
+        <h2>Health Tracking</h2>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Vital Signs</div>
+              <div class="card-sub">Weekly averages</div>
+            </div>
+            <div class="card-icon icon-g">
+              <i class="fas fa-stethoscope"></i>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Blood Pressure</span>
+            <span class="val" id="healthBpVal">120/80</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Heart Rate</span>
+            <span class="val" id="heartRateVal">75 BPM</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Body Temp</span>
+            <span class="val">98.6°F</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Last Updated</span>
+            <span class="val" id="healthLastUpdated">Today</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Symptoms</div>
+              <div class="card-sub">Reported this week</div>
+            </div>
+            <div class="card-icon icon-o">
+              <i class="fas fa-thermometer-half"></i>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Nausea</span>
+            <span class="val" style="color:var(--green);">Mild</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Fatigue</span>
+            <span class="val" style="color:var(--orange);">Moderate</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Back Pain</span>
+            <span class="val" style="color:var(--green);">Minimal</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Mood</span>
+            <span class="val" style="color:var(--green);">Good</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ INFANT PANEL ══════════════════════════ -->
+    <div class="panel" id="infantPanel">
+      <div class="section-head">
+        <h2>Infant Information</h2>
+      </div>
+
+      <!-- COUNTDOWN FOR PREGNANT WOMEN -->
+      <div id="countdownSection">
+        <div class="countdown-card">
+          <h3>Countdown to Delivery</h3>
+          <p>Your estimated due date</p>
+          <div class="countdown-timer" id="countdownTimer">
+            <div class="countdown-unit">
+              <div class="countdown-num" id="daysLeft">0</div>
+              <div class="countdown-label">Days</div>
+            </div>
+            <div class="countdown-unit">
+              <div class="countdown-num" id="hoursLeft">0</div>
+              <div class="countdown-label">Hours</div>
+            </div>
+            <div class="countdown-unit">
+              <div class="countdown-num" id="minutesLeft">0</div>
+              <div class="countdown-label">Minutes</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--slate);margin-top:16px;">
+            Due Date: <strong id="dueDateDisplay">--/--/----</strong>
+          </p>
+        </div>
+      </div>
+
+      <!-- BABY INFO FOR POSTNATAL MOTHERS -->
+      <div id="babySection" style="display:none;">
+        <div class="card" style="margin-top:20px;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Baby Information</div>
+              <div class="card-sub">Track your baby's growth</div>
+            </div>
+            <div class="card-icon icon-p">
+              <i class="fas fa-baby-carriage"></i>
+            </div>
+          </div>
+
+          <div class="baby-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label><i class="fas fa-mars" style="color:var(--blue);margin-right:6px;"></i>Baby Name</label>
+                <input type="text" id="babyName" placeholder="Enter baby's name">
+              </div>
+              <div class="form-group">
+                <label><i class="fas fa-calendar" style="color:var(--pink);margin-right:6px;"></i>Birth Date</label>
+                <input type="date" id="babyDOB">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label><i class="fas fa-weighing-scale" style="color:var(--orange);margin-right:6px;"></i>Weight (kg)</label>
+                <input type="number" id="babyWeight" placeholder="0.0" step="0.1" min="0">
+              </div>
+              <div class="form-group">
+                <label><i class="fas fa-ruler" style="color:var(--green);margin-right:6px;"></i>Height (cm)</label>
+                <input type="number" id="babyHeight" placeholder="0.0" step="0.1" min="0">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label><i class="fas fa-venus-mars" style="color:var(--purple);margin-right:6px;"></i>Gender</label>
+              <select id="babyGender">
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+
+            <button class="btn-add" onclick="addBaby()">
+              <i class="fas fa-plus"></i> Add Baby Information
+            </button>
+          </div>
+
+          <div id="babyCardsContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MEDICATIONS PANEL ═══════════════════════ -->
+    <div class="panel" id="medicationsPanel">
+      <div class="section-head">
+        <h2>Your Medications & Supplements</h2>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Active Medications</div>
+              <div class="card-sub">Current prescriptions and supplements</div>
+            </div>
+            <div class="card-icon icon-p">
+              <i class="fas fa-capsules"></i>
+            </div>
+          </div>
+          <div id="medicationsList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Medication Notes</div>
+              <div class="card-sub">Important reminders</div>
+            </div>
+            <div class="card-icon icon-g">
+              <i class="fas fa-note-sticky"></i>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--slate);line-height:1.7;">
+            <p><strong style="color:var(--navy);">Iron Supplement</strong><br>Take with vitamin C for better absorption. Avoid with tea or coffee.</p>
+            <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+            <p><strong style="color:var(--navy);">Folic Acid</strong><br>Essential for first trimester. Continue throughout pregnancy.</p>
+            <hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">
+            <p><strong style="color:var(--navy);">Calcium</strong><br>Take 2-3 hours apart from iron. Best taken with meals.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ARTICLES PANEL ════════════════════════ -->
+    <div class="panel" id="articlesPanel">
+      <div class="section-head">
+        <h2>Health Articles</h2>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon icon-b" style="margin-bottom:12px;">
+            <i class="fas fa-book"></i>
+          </div>
+          <div class="card-title">Nutrition During Pregnancy</div>
+          <div class="card-sub">Essential nutrients for you and your baby</div>
+          <p style="font-size:13px;color:var(--slate);margin:12px 0;line-height:1.6;">
+            Learn about the key vitamins, minerals, and nutrients you need during pregnancy for optimal health.
+          </p>
+          <button style="color:var(--pink);font-weight:600;background:none;border:none;cursor:pointer;font-size:13px;">
+            Read More <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-icon icon-g" style="margin-bottom:12px;">
+            <i class="fas fa-heartbeat"></i>
+          </div>
+          <div class="card-title">Safe Exercise During Pregnancy</div>
+          <div class="card-sub">Stay active and healthy</div>
+          <p style="font-size:13px;color:var(--slate);margin:12px 0;line-height:1.6;">
+            Discover safe exercise routines that help manage weight, reduce pain, and prepare for labor.
+          </p>
+          <button style="color:var(--pink);font-weight:600;background:none;border:none;cursor:pointer;font-size:13px;">
+            Read More <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-icon icon-p" style="margin-bottom:12px;">
+            <i class="fas fa-brain"></i>
+          </div>
+          <div class="card-title">Mental Wellness</div>
+          <div class="card-sub">Emotional health matters</div>
+          <p style="font-size:13px;color:var(--slate);margin:12px 0;line-height:1.6;">
+            Understand pregnancy emotions, stress management, and when to seek support from professionals.
+          </p>
+          <button style="color:var(--pink);font-weight:600;background:none;border:none;cursor:pointer;font-size:13px;">
+            Read More <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ APPOINTMENTS PANEL ════════════════════ -->
+    <div class="panel" id="appointmentsPanel">
+      <div class="section-head" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h2>Appointments</h2>
+          <p style="color:var(--slate); font-size:13px; margin-top:2px;">View your clinical consultations and schedule new visits</p>
+        </div>
+        <button class="btn-book-action" id="openBookModalBtn" onclick="openBookModal()">
+          <i class="fas fa-calendar-plus"></i> <span>+ Book Appointment</span>
+        </button>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Scheduled & Requested Appointments</div>
+              <div class="card-sub">Real-time status of your upcoming and pending hospital consultations</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn-action-sm btn-action-view" onclick="reloadAppointments()" title="Refresh appointments" style="background:var(--white);">
+                <i class="fas fa-arrows-rotate"></i> Refresh
+              </button>
+              <div class="card-icon icon-b">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+            </div>
+          </div>
+          <div id="appointmentsList" style="margin-top:16px;">
+            <p style="color:var(--slate); font-size:13px; text-align:center; padding:24px;">Loading appointments...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Hospital & Care Center</div>
+              <div class="card-sub">Assigned healthcare facility</div>
+            </div>
+            <div class="card-icon icon-p">
+              <i class="fas fa-hospital"></i>
+            </div>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Facility</span>
+            <span class="val" id="patientHospitalName">City Hospital</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Location</span>
+            <span class="val">Chennai Central</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">OPD Timing</span>
+            <span class="val">Mon - Sat (09:00 AM - 05:00 PM)</span>
+          </div>
+          <div class="info-row">
+            <span class="lbl">Emergency Helpline</span>
+            <span class="val" style="color:var(--pink); font-weight:700;">+91 98000 00001</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Booking & Cancellation Policy</div>
+              <div class="card-sub">Guidelines for patient appointments</div>
+            </div>
+            <div class="card-icon icon-g">
+              <i class="fas fa-shield-halved"></i>
+            </div>
+          </div>
+          <div style="font-size:12.5px; color:var(--slate); line-height:1.6; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; gap:8px; align-items:flex-start;">
+              <i class="fas fa-check-circle" style="color:var(--green); margin-top:2px;"></i>
+              <span>Appointments are created with <strong>Pending</strong> status until confirmed by your doctor.</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-start;">
+              <i class="fas fa-clock" style="color:var(--blue); margin-top:2px;"></i>
+              <span>Specialists may propose an alternate time slot (shown as <strong>Rescheduled</strong>).</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-start;">
+              <i class="fas fa-ban" style="color:var(--red); margin-top:2px;"></i>
+              <span>You may cancel any pending or scheduled appointment prior to the visit time. Completed visits cannot be modified.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Prescriptions Panel ─ -->
+    <div class="panel" id="prescriptionsPanel">
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header">
+          <div class="card-title">Digital Prescriptions</div>
+          <div class="card-sub">Medical notes posted directly by your doctor</div>
+        </div>
+        <div id="medicalRecordsContainer" style="margin-top:20px;">
+          <p style="color:var(--slate);font-size:13px;">Loading prescriptions...</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ BOOK APPOINTMENT MODAL ═════════════════ -->
+<div class="modal-backdrop" id="bookAppointmentModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3>Book an Appointment</h3>
+        <p style="font-size:12.5px; color:var(--slate); margin-top:2px;">Select specialist, date, and preferred time slot</p>
+      </div>
+      <button class="modal-close-btn" onclick="closeBookModal()">&times;</button>
+    </div>
+
+    <form id="bookAppointmentForm" onsubmit="handleBookAppointmentSubmit(event)">
+      <!-- Alert banner -->
+      <div id="bookModalAlert" style="display:none; padding:10px 14px; border-radius:10px; margin-bottom:14px; font-size:12.5px; background:var(--red-light); color:var(--red); border:1px solid rgba(229,90,90,.3);"></div>
+
+      <!-- Specialization Filter -->
+      <div class="form-field">
+        <label><i class="fas fa-filter"></i> Specialization Filter</label>
+        <select id="bookSpecFilter" onchange="onSpecFilterChange()">
+          <option value="">All Specializations</option>
+          <option value="OB-GYN">Obstetrics & Gynecology (OB-GYN)</option>
+          <option value="Fetal">Fetal Medicine Expert</option>
+          <option value="Pediatrician">Pediatrician</option>
+          <option value="Anesthesiologist">Anesthesiologist</option>
+          <option value="Laparoscopic">Laparoscopic Surgeon</option>
+        </select>
+      </div>
+
+      <!-- Doctor Selection -->
+      <div class="form-field">
+        <label><i class="fas fa-user-doctor"></i> Doctor *</label>
+        <select id="bookDoctorSelect" required onchange="onDoctorOrDateChange()">
+          <option value="">-- Choose a doctor --</option>
+        </select>
+      </div>
+
+      <!-- Appointment Type -->
+      <div class="form-field">
+        <label><i class="fas fa-tag"></i> Appointment Type *</label>
+        <select id="bookApptType" required>
+          <option value="Prenatal Checkup">Prenatal Checkup</option>
+          <option value="Ultrasound Scan">Ultrasound Scan</option>
+          <option value="Routine Consultation">Routine Consultation</option>
+          <option value="High-Risk Assessment">High-Risk Assessment</option>
+          <option value="Postnatal Review">Postnatal Review</option>
+        </select>
+      </div>
+
+      <!-- Date Input -->
+      <div class="form-field">
+        <label><i class="fas fa-calendar-day"></i> Appointment Date *</label>
+        <input type="date" id="bookDate" required onchange="onDoctorOrDateChange()">
+      </div>
+
+      <!-- Available Time Slots -->
+      <div class="form-field">
+        <label><i class="fas fa-clock"></i> Available Time Slots *</label>
+        <div id="slotsMessage" style="font-size:12px; color:var(--slate); margin-bottom:6px;">
+          Select a doctor and date to check open slots.
+        </div>
+        <div class="slots-container" id="slotsContainer"></div>
+        <input type="hidden" id="selectedTimeSlot" required>
+      </div>
+
+      <!-- Reason for Visit -->
+      <div class="form-field">
+        <label><i class="fas fa-notes-medical"></i> Reason for Visit *</label>
+        <textarea id="bookReason" rows="3" required placeholder="Describe symptoms, questions, or checkup focus..."></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:22px;">
+        <button type="button" class="btn-action-sm btn-action-view" onclick="closeBookModal()" style="padding:11px 18px; border-radius:10px; width:38%; justify-content:center;">Cancel</button>
+        <button type="submit" class="btn-primary" id="bookSubmitBtn" style="width:62%; border-radius:10px; padding:11px 18px; display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+          <i class="fas fa-check"></i> <span>Request Appointment</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ VIEW APPOINTMENT DETAILS MODAL ══════════ -->
+<div class="modal-backdrop" id="viewAppointmentModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3>Appointment Details</h3>
+        <p style="font-size:12px; color:var(--slate); margin-top:2px;" id="viewModalSub">Overview of your scheduled hospital visit</p>
+      </div>
+      <button class="modal-close-btn" onclick="closeViewModal()">&times;</button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px;" id="viewModalBody">
+      <!-- Populated dynamically -->
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:24px; justify-content:flex-end;" id="viewModalFooter">
+      <button type="button" class="btn-action-sm btn-action-view" onclick="closeViewModal()" style="padding:9px 16px; border-radius:8px;">Close</button>
+      <button type="button" class="btn-action-sm btn-action-cancel" id="viewModalCancelBtn" onclick="onViewModalCancel()" style="padding:9px 16px; border-radius:8px;">
+        <i class="fas fa-times-circle"></i> Cancel Appointment
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ALERT ═════════════════════════════ -->
+<div id="toastAlert">
+  <i class="fas fa-info-circle" id="toastIcon"></i>
+  <span id="toastText">Notification message</span>
+</div>
+
+<script>
+// Base API path (empty string for same-origin, or configured via window.API_BASE)
+const API_BASE = window.API_BASE || '';
+
+// ─ Initialize Dashboard ─
+async function initDashboard() {
+  const user = JSON.parse(localStorage.getItem('currentUser'));
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Verify active session with backend server
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const authCheck = await fetch(`${API_BASE}/api/auth/me`, {
+      headers,
+      credentials: 'include'
+    });
+
+    if (authCheck.status === 401) {
+      console.warn('[Maternix] Session invalid or expired. Redirecting to login.');
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      window.location.href = 'login.html';
+      return;
+    }
+  } catch (err) {
+    // If backend is momentarily unreachable, proceed with cached user state
+    console.warn('[Maternix] Auth check failed or offline:', err.message);
+  }
+
+  // Update user info
+  document.getElementById('welcomeName').textContent = user.firstName || 'User';
+  document.getElementById('sidebarUserName').textContent = (user.firstName || '') + ' ' + (user.lastName || '');
+  document.getElementById('panelTitle').textContent = `Welcome, ${user.firstName || 'User'}`;
+  
+  // Set user role and status
+  if (user.status === 'pregnant') {
+    document.getElementById('sidebarUserRole').textContent = 'Pregnant';
+    document.getElementById('sidebarStatus').textContent = 'Week ' + (user.currentWeek || 1);
+    showCountdown(user.dueDate);
+    document.getElementById('countdownSection').style.display = 'block';
+    document.getElementById('babySection').style.display = 'none';
+    document.getElementById('weekNum').textContent = user.currentWeek || 1;
+  } else {
+    document.getElementById('sidebarUserRole').textContent = 'Postnatal Mother';
+    document.getElementById('sidebarStatus').textContent = 'Active';
+    document.getElementById('countdownSection').style.display = 'none';
+    document.getElementById('babySection').style.display = 'block';
+    loadBabyInfo();
+  }
+
+  // Load medications
+  loadMedications();
+
+  // Load live data from Supabase (non-blocking)
+  const motherId = user.motherId || user.id;
+  loadSupabaseData(motherId);
+}
+
+// ─ Countdown Timer ─
+function showCountdown(dueDate) {
+  function updateCountdown() {
+    const due = new Date(dueDate).getTime();
+    const now = new Date().getTime();
+    const diff = due - now;
+
+    if (diff > 0) {
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      document.getElementById('daysLeft').textContent = days;
+      document.getElementById('hoursLeft').textContent = hours;
+      document.getElementById('minutesLeft').textContent = minutes;
+      document.getElementById('daysNum').textContent = days;
+      document.getElementById('dueDateDisplay').textContent = new Date(dueDate).toLocaleDateString();
+    }
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 60000); // Update every minute
+}
+
+// ─ Add Baby Information ─
+function addBaby() {
+  const user = JSON.parse(localStorage.getItem('currentUser'));
+  const name = document.getElementById('babyName').value.trim();
+  const dob = document.getElementById('babyDOB').value;
+  const weight = document.getElementById('babyWeight').value;
+  const height = document.getElementById('babyHeight').value;
+  const gender = document.getElementById('babyGender').value;
+
+  if (!name || !dob || !weight || !height || !gender) {
+    alert('Please fill all fields');
+    return;
+  }
+
+  const baby = {
+    id: Date.now(),
+    name,
+    dob,
+    weight,
+    height,
+    gender
+  };
+
+  const babyKey = `babyData_${user.id}`;
+  let babies = JSON.parse(localStorage.getItem(babyKey)) || [];
+  babies.push(baby);
+  localStorage.setItem(babyKey, JSON.stringify(babies));
+
+  // Clear form
+  document.getElementById('babyName').value = '';
+  document.getElementById('babyDOB').value = '';
+  document.getElementById('babyWeight').value = '';
+  document.getElementById('babyHeight').value = '';
+  document.getElementById('babyGender').value = '';
+
+  loadBabyInfo();
+}
+
+// ─ Load Medications ─
+function loadMedications() {
+  const medicationsList = document.getElementById('medicationsList');
+  const user = JSON.parse(localStorage.getItem('currentUser'));
+  
+  if (user.questionnaireData && user.questionnaireData.medications) {
+    const meds = user.questionnaireData.medications;
+    medicationsList.innerHTML = '';
+    
+    const medNames = {
+      iron: { name: 'Iron Supplement', icon: 'droplet', color: 'icon-o' },
+      folic: { name: 'Folic Acid', icon: 'flask', color: 'icon-g' },
+      calcium: { name: 'Calcium Supplement', icon: 'bone', color: 'icon-b' },
+      vitamin: { name: 'Prenatal Vitamin', icon: 'heart-pulse', color: 'icon-p' },
+      other: { name: 'Other Medications', icon: 'prescription-bottle', color: 'icon-r' }
+    };
+    
+    if (meds.length > 0) {
+      meds.forEach(med => {
+        const medInfo = medNames[med] || { name: med, icon: 'capsules', color: 'icon-p' };
+        medicationsList.innerHTML += `
+          <div class="info-row">
+            <span class="lbl">
+              <i class="fas fa-${medInfo.icon}" style="color:var(--pink);margin-right:8px;"></i>${medInfo.name}
+            </span>
+            <span class="val" style="color:var(--green);">✓ Active</span>
+          </div>
+        `;
+      });
+    } else {
+      medicationsList.innerHTML = '<p style="color:var(--slate);font-size:13px;">No medications selected in profile setup.</p>';
+    }
+  } else {
+    medicationsList.innerHTML = '<p style="color:var(--slate);font-size:13px;">Complete your health profile to view medications.</p>';
+  }
+}
+
+// ─ Load Baby Information ─
+function loadBabyInfo() {
+  const user = JSON.parse(localStorage.getItem('currentUser'));
+  const babyKey = user ? `babyData_${user.id}` : 'babyData';
+  const babies = JSON.parse(localStorage.getItem(babyKey)) || [];
+  const container = document.getElementById('babyCardsContainer');
+  container.innerHTML = '';
+
+  if (babies.length === 0) {
+    container.innerHTML = '<p style="color:var(--slate);text-align:center;padding:20px;">No baby information added yet.</p>';
+    return;
+  }
+
+  babies.forEach(baby => {
+    const card = document.createElement('div');
+    card.className = 'baby-card';
+    const dob = new Date(baby.dob);
+    const age = Math.floor((Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24));
+
+    card.innerHTML = `
+      <div class="baby-card-header">
+        <div class="baby-icon">
+          <i class="fas fa-${baby.gender === 'male' ? 'mars' : 'venus'}"></i>
+        </div>
+        <div class="baby-card-title">${baby.name}</div>
+        <button class="btn-remove" onclick="removeBaby(${baby.id})" title="Remove">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="baby-details">
+        <div class="detail-item">
+          <div class="detail-label">Date of Birth</div>
+          <div class="detail-value">${dob.toLocaleDateString()}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Age</div>
+          <div class="detail-value">${age} days</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Weight</div>
+          <div class="detail-value">${baby.weight} kg</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Height</div>
+          <div class="detail-value">${baby.height} cm</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// ─ Remove Baby Information ─
+function removeBaby(id) {
+  if (confirm('Are you sure?')) {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const babyKey = user ? `babyData_${user.id}` : 'babyData';
+    let babies = JSON.parse(localStorage.getItem(babyKey)) || [];
+    babies = babies.filter(b => b.id !== id);
+    localStorage.setItem(babyKey, JSON.stringify(babies));
+    loadBabyInfo();
+  }
+}
+
+// ─ Switch Panel ─
+function switchPanel(panelName, event) {
+  // Hide all panels
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  
+  // Show selected panel
+  const panel = document.getElementById(panelName + 'Panel');
+  if (panel) {
+    panel.classList.add('active');
+    
+    // Update nav
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const navItem = event && event.target ? event.target.closest('.nav-item') : null;
+    if (navItem) navItem.classList.add('active');
+
+    // Update topbar
+    const titles = {
+      overview: ['Dashboard Overview', 'Welcome back! Here\'s your maternal care summary.'],
+      health: ['Health Tracking', 'Monitor your vital signs and symptoms.'],
+      infant: ['Infant Information', 'Track your baby\'s information and milestones.'],
+      medications: ['Medications & Supplements', 'Manage your prescriptions and supplements.'],
+      prescriptions: ['Digital Prescriptions', 'Medical notes posted directly by your doctor.'],
+      articles: ['Health Articles', 'Read important articles about maternal health.'],
+      appointments: ['Appointments', 'Manage your healthcare appointments.']
+    };
+
+    if (titles[panelName]) {
+      document.getElementById('panelTitle').textContent = titles[panelName][0];
+      document.getElementById('panelSubtitle').textContent = titles[panelName][1];
+    }
+    
+    // Load medications when switching to medications panel
+    if (panelName === 'medications') {
+      loadMedications();
+    }
+  }
+}
+
+// ─ Logout ─
+async function logout() {
+  if (confirm('Are you sure you want to logout?')) {
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn('[Maternix] Logout request error:', err.message);
+    }
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (user) {
+      localStorage.removeItem(`babyData_${user.id}`);
+    }
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userMedications');
+    window.location.href = 'login.html';
+  }
+}
+
+// ─ Load Live Data from Backend ─
+async function loadSupabaseData(motherId) {
+  if (!motherId) return;
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}/api/dashboard/${motherId}`, {
+      headers,
+      credentials: 'include'
+    });
+
+    if (resp.status === 401 || resp.status === 403) {
+      console.warn('[Maternix] Access denied to dashboard data. Redirecting to login.');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    if (!resp.ok) throw new Error('Backend dashboard fetch failed');
+    
+    const { vitals, history, appointments: appts, supportContacts, hospitals, medicalRecords, infants } = await resp.json();
+
+    // — Health monitor (latest record) —
+    if (vitals) {
+      const m = vitals;
+      const fmt = new Date(m.record_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      set('bpOverviewVal',    m.blood_pressure + '/80 mmHg');
+      set('userWeight',       m.weight + ' kg');
+      set('healthBpVal',      m.blood_pressure + '/80');
+      set('lastCheckupVal',   fmt);
+      set('healthLastUpdated', fmt);
+    }
+
+    // — Historical Vitals Chart —
+    if (history && history.length > 0) {
+      const dates = history.map(h => new Date(h.record_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short' })).reverse();
+      const bp = history.map(h => h.blood_pressure).reverse();
+      const wt = history.map(h => h.weight).reverse();
+
+      const ctx = document.getElementById('vitalsChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            { label: 'Systolic BP (mmHg)', data: bp, borderColor: '#d96b8c', backgroundColor: 'rgba(217,107,140,0.1)', fill: true, tension: 0.3 },
+            { label: 'Weight (kg)', data: wt, borderColor: '#4a9bd6', backgroundColor: 'transparent', fill: false, tension: 0.3 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // — Appointments —
+    if (appts && appts.length > 0) {
+      renderSupabaseAppointments(appts);
+    }
+
+    // — SOS System —
+    if (supportContacts && supportContacts.length > 0) {
+      document.getElementById('sosContactsDisplay').innerHTML = supportContacts.map(c => 
+        `<strong>${c.relation}:</strong> ${c.contact_name} <br><a href="tel:${c.contact_number}" style="color:var(--blue);text-decoration:none;"><i class="fas fa-phone"></i> ${c.contact_number}</a>`
+      ).join('<hr style="margin:10px 0;border:none;border-top:1px solid #ddd;">');
+    } else { document.getElementById('sosContactsDisplay').innerHTML = "No emergency contacts listed."; }
+    
+    if (hospitals && hospitals.length > 0) {
+      const h = hospitals[0]; // grab nearest
+      document.getElementById('sosHospitalDisplay').innerHTML = `<strong>Nearest Assigned Hospital:</strong><br>${h.name}<br><span style="font-size:13px;color:var(--slate);"><i class="fas fa-map-marker-alt"></i> ${h.location}</span><br><br><a href="tel:${h.contact_no}" class="btn-primary" style="display:inline-block;text-decoration:none;"><i class="fas fa-ambulance"></i> Call Hospital</a>`;
+    }
+
+    // — Digital Prescriptions —
+    const pxContainer = document.getElementById('medicalRecordsContainer');
+    if (medicalRecords && medicalRecords.length > 0) {
+      pxContainer.innerHTML = medicalRecords.map(r => `
+        <div style="background:var(--bg); border:1px solid var(--border); border-left:4px solid var(--blue); padding:15px; border-radius:8px; margin-bottom:15px;">
+          <div style="font-size:12px; color:var(--slate); margin-bottom:5px;">${new Date(r.record_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</div>
+          <h4 style="color:var(--navy); margin-bottom:8px;">${r.diagnosis}</h4>
+          <p style="color:var(--slate); font-size:14px;"><i class="fas fa-pills" style="color:var(--pink);"></i> ${r.prescription}</p>
+        </div>
+      `).join('');
+    } else {
+      pxContainer.innerHTML = `<p style="color:var(--slate);font-size:13px;">No prescriptions mapped to your account yet.</p>`;
+    }
+
+    // — Vaccinations (Infants view) —
+    if (infants && infants.length > 0) {
+      const babyCardList = document.getElementById('babyList');
+      if (babyCardList) {
+        infants.forEach(inf => {
+          if (inf.vaccinations && inf.vaccinations.length > 0) {
+            const vaxHtml = inf.vaccinations.map(v => `
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+                <span><i class="fas fa-syringe" style="color:var(--pink);"></i> ${v.vaccine_name}</span>
+                <span class="${v.vaccination_date ? 'status-pregnant' : 'status-postnatal'} badge" style="font-size:11px;">
+                   ${v.vaccination_date ? 'Done: ' + v.vaccination_date : 'Due: ' + v.next_due_date}
+                </span>
+              </div>
+            `).join('');
+            
+            const vaxDiv = document.createElement('div');
+            vaxDiv.innerHTML = `<h4 style="margin-top:20px;margin-bottom:10px;font-size:14px;color:var(--slate);">Vaccination Schedule (Live)</h4>
+                                <div style="background:var(--white);padding:15px;border-radius:10px;box-shadow:var(--shadow-sm);">${vaxHtml}</div>`;
+            babyCardList.appendChild(vaxDiv);
+          }
+        });
+      }
+    }
+
+  } catch (err) {
+    console.warn('[Maternix] Backend data load failed:', err.message);
+  }
+}
+
+// ── Global Appointment Management State ──
+let cachedAppointments = [];
+let cachedDoctors = [];
+let selectedBookingSlot = null;
+let currentViewApptId = null;
+
+// Helper: Format date safely avoiding timezone day shift
+function formatApptDate(dateStr) {
+  if (!dateStr) return 'TBD';
+  const parts = String(dateStr).split('T')[0].split('-');
+  if (parts.length === 3) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const y = parts[0], m = parseInt(parts[1], 10) - 1, d = parts[2];
+    return `${months[m]} ${d}, ${y}`;
+  }
+  return dateStr;
+}
+
+// ─ Render Appointments List with Full Status & Actions ─
+function renderSupabaseAppointments(appts) {
+  cachedAppointments = Array.isArray(appts) ? appts : [];
+  const container = document.getElementById('appointmentsList');
+  if (!container) return;
+
+  if (cachedAppointments.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:32px 16px; color:var(--slate);">
+        <i class="fas fa-calendar-plus" style="font-size:36px; color:var(--pink-light); margin-bottom:12px; display:block;"></i>
+        <p style="font-weight:600; font-size:14.5px; margin-bottom:4px; color:var(--navy);">No Scheduled Appointments</p>
+        <p style="font-size:12.5px; margin-bottom:16px;">Schedule your next prenatal scan, routine review, or consultation with our specialist doctors.</p>
+        <button class="btn-book-action" onclick="openBookModal()">
+          <i class="fas fa-plus"></i> <span>Book Your First Visit</span>
+        </button>
+      </div>`;
+    return;
+  }
+
+  const statusIcons = {
+    Pending: '<i class="fas fa-clock"></i>',
+    Scheduled: '<i class="fas fa-calendar-check"></i>',
+    Rescheduled: '<i class="fas fa-arrows-rotate"></i>',
+    Completed: '<i class="fas fa-circle-check"></i>',
+    Cancelled: '<i class="fas fa-circle-xmark"></i>',
+    Rejected: '<i class="fas fa-ban"></i>'
+  };
+
+  container.innerHTML = cachedAppointments.map(a => {
+    const rawStatus = a.status || 'Pending';
+    const statusKey = rawStatus.toLowerCase();
+    const statusIcon = statusIcons[rawStatus] || '<i class="fas fa-info-circle"></i>';
+    const formattedDate = formatApptDate(a.appointment_date);
+    const timeDisplay = a.appointment_time || '10:00 AM';
+    const docName = a.doctor_name || a.doctor_id || 'Assigned Specialist';
+    const spec = a.doctor_specialization || 'Obstetrics & Gynecology';
+    const hospital = a.hospital_name || 'City Hospital';
+    const reasonText = a.reason || 'General Maternal Consultation';
+    const apptType = a.appointment_type || 'Prenatal Checkup';
+    const canCancel = (rawStatus === 'Pending' || rawStatus === 'Scheduled' || rawStatus === 'Rescheduled');
+
+    return `
+      <div class="appt-card-v2" id="appt-card-${a.appointment_id}">
+        <div class="appt-card-header">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div class="appt-datetime-pill">
+              <i class="fas fa-calendar-day" style="color:var(--pink);"></i> ${formattedDate}
+              <span style="color:var(--slate);">•</span>
+              <i class="fas fa-clock" style="color:var(--blue);"></i> ${timeDisplay}
+            </div>
+            <span style="font-size:11.5px; background:var(--pink-pale); color:var(--pink); padding:3px 8px; border-radius:6px; font-weight:600;">
+              ${apptType}
+            </span>
+          </div>
+          <span class="status-tag ${statusKey}">
+            ${statusIcon} ${rawStatus}
+          </span>
+        </div>
+
+        <div style="display:flex; gap:14px; align-items:flex-start; margin-top:10px;">
+          <div style="width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--pink-pale),var(--blue-light)); display:flex; align-items:center; justify-content:center; color:var(--pink); font-size:18px; flex-shrink:0; border:1px solid var(--border);">
+            <i class="fas fa-user-doctor"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px;">
+              <h4 style="font-size:14.5px; font-weight:700; color:var(--navy); margin-bottom:2px;">${docName}</h4>
+              <span style="font-size:12px; color:var(--slate);"><i class="fas fa-hospital" style="color:var(--blue);"></i> ${hospital}</span>
+            </div>
+            <p style="font-size:12.5px; color:var(--slate); margin-bottom:6px;">${spec}</p>
+            <p style="font-size:13px; color:var(--navy); background:var(--bg); padding:8px 12px; border-radius:8px; border-left:3px solid var(--pink);">
+              <strong>Reason:</strong> ${reasonText}
+            </p>
+            ${a.notes ? `
+              <p style="font-size:12px; color:var(--purple); margin-top:6px; font-style:italic;">
+                <i class="fas fa-circle-info"></i> ${a.notes}
+              </p>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="appt-actions">
+          <button class="btn-action-sm btn-action-view" onclick="openViewAppointmentModal(${a.appointment_id})">
+            <i class="fas fa-eye"></i> View Details
+          </button>
+          ${canCancel ? `
+            <button class="btn-action-sm btn-action-cancel" onclick="cancelAppointment(${a.appointment_id})">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          ` : `
+            <span style="font-size:11px; color:var(--slate); align-self:center; font-style:italic;">
+              ${rawStatus === 'Completed' ? '✓ Visit Completed' : '✕ Cancelled'}
+            </span>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─ Reload Patient Appointments via API ─
+async function reloadAppointments() {
+  const container = document.getElementById('appointmentsList');
+  if (container) container.innerHTML = '<p style="color:var(--slate);font-size:13px;text-align:center;padding:20px;">Refreshing appointments...</p>';
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}/api/appointments`, { headers, credentials: 'include' });
+    if (resp.ok) {
+      const data = await resp.json();
+      renderSupabaseAppointments(data);
+    } else {
+      throw new Error('Could not refresh appointments list');
+    }
+  } catch (err) {
+    console.warn('[Maternix] Reload appointments failed:', err.message);
+  }
+}
+
+// ─ Load Doctors Directory ─
+async function loadDoctorsDirectory() {
+  try {
+    const resp = await fetch(`${API_BASE}/api/doctors`);
+    if (resp.ok) {
+      cachedDoctors = await resp.json();
+      populateDoctorSelect();
+    }
+  } catch (err) {
+    console.warn('[Maternix] Load doctors failed:', err.message);
+  }
+}
+
+// ─ Populate Doctor Select Box ─
+function populateDoctorSelect(filterSpec = '') {
+  const select = document.getElementById('bookDoctorSelect');
+  if (!select) return;
+
+  const currentVal = select.value;
+  select.innerHTML = '<option value="">-- Choose a doctor --</option>';
+
+  const filtered = filterSpec
+    ? cachedDoctors.filter(d => d.specialization && d.specialization.toLowerCase().includes(filterSpec.toLowerCase()))
+    : cachedDoctors;
+
+  filtered.forEach(doc => {
+    const opt = document.createElement('option');
+    opt.value = doc.doctor_id;
+    opt.textContent = `${doc.name} — ${doc.specialization} (${doc.hospital_name || 'City Hospital'})`;
+    select.appendChild(opt);
+  });
+
+  if (currentVal && filtered.some(d => d.doctor_id === currentVal)) {
+    select.value = currentVal;
+  }
+}
+
+function onSpecFilterChange() {
+  const filterVal = document.getElementById('bookSpecFilter').value;
+  populateDoctorSelect(filterVal);
+  onDoctorOrDateChange();
+}
+
+// ─ Check Slots on Doctor or Date Change ─
+async function onDoctorOrDateChange() {
+  const docId = document.getElementById('bookDoctorSelect').value;
+  const dateVal = document.getElementById('bookDate').value;
+  const container = document.getElementById('slotsContainer');
+  const msg = document.getElementById('slotsMessage');
+  const hiddenSlot = document.getElementById('selectedTimeSlot');
+
+  hiddenSlot.value = '';
+  selectedBookingSlot = null;
+
+  if (!docId || !dateVal) {
+    container.innerHTML = '';
+    msg.textContent = 'Please choose both a doctor and date to view available time slots.';
+    msg.style.color = 'var(--slate)';
+    return;
+  }
+
+  // Validate date is not in past
+  const now = new Date();
+  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+  if (dateVal < todayStr) {
+    container.innerHTML = '';
+    msg.textContent = 'Appointment date cannot be in the past.';
+    msg.style.color = 'var(--red)';
+    return;
+  }
+
+  msg.textContent = 'Checking slot availability...';
+  msg.style.color = 'var(--slate)';
+  container.innerHTML = '';
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}/api/doctors/${docId}/slots?date=${dateVal}`, {
+      headers,
+      credentials: 'include'
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      msg.textContent = err.error || 'Failed to fetch slots.';
+      msg.style.color = 'var(--red)';
+      return;
+    }
+
+    const data = await resp.json();
+    const allSlots = data.allSlots || [];
+    const booked = data.bookedSlots || [];
+
+    if (allSlots.length === 0) {
+      msg.textContent = 'No clinic hours scheduled for this day.';
+      return;
+    }
+
+    msg.textContent = 'Click a time slot to select:';
+    msg.style.color = 'var(--navy)';
+
+    container.innerHTML = allSlots.map(slot => {
+      const isBooked = booked.includes(slot);
+      return `
+        <button type="button" 
+          class="slot-pill" 
+          ${isBooked ? 'disabled title="Slot already booked"' : `onclick="selectTimeSlot('${slot}', this)"`}
+        >
+          ${slot}
+          ${isBooked ? '<span style="display:block;font-size:9.5px;color:var(--red);">Booked</span>' : ''}
+        </button>
+      `;
+    }).join('');
+
+  } catch (err) {
+    msg.textContent = 'Network error checking time slots.';
+    msg.style.color = 'var(--red)';
+  }
+}
+
+function selectTimeSlot(slot, btnEl) {
+  selectedBookingSlot = slot;
+  document.getElementById('selectedTimeSlot').value = slot;
+
+  document.querySelectorAll('.slot-pill').forEach(btn => btn.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const alert = document.getElementById('bookModalAlert');
+  if (alert) alert.style.display = 'none';
+}
+
+// ─ Open & Close Booking Modal ─
+function openBookModal() {
+  const modal = document.getElementById('bookAppointmentModal');
+  const alert = document.getElementById('bookModalAlert');
+  if (alert) alert.style.display = 'none';
+
+  // Set min date to today
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('bookDate');
+  if (dateInput) {
+    dateInput.min = todayStr;
+    if (!dateInput.value || dateInput.value < todayStr) {
+      dateInput.value = todayStr;
+    }
+  }
+
+  // Load doctors if not loaded
+  if (cachedDoctors.length === 0) {
+    loadDoctorsDirectory();
+  } else {
+    populateDoctorSelect(document.getElementById('bookSpecFilter').value);
+  }
+
+  modal.classList.add('show');
+  onDoctorOrDateChange();
+}
+
+function closeBookModal() {
+  const modal = document.getElementById('bookAppointmentModal');
+  if (modal) modal.classList.remove('show');
+}
+
+// ─ Submit Booking Form ─
+async function handleBookAppointmentSubmit(e) {
+  e.preventDefault();
+  const alertBox = document.getElementById('bookModalAlert');
+  alertBox.style.display = 'none';
+
+  const doctorId = document.getElementById('bookDoctorSelect').value;
+  const appointmentType = document.getElementById('bookApptType').value;
+  const appointmentDate = document.getElementById('bookDate').value;
+  const appointmentTime = document.getElementById('selectedTimeSlot').value;
+  const reason = document.getElementById('bookReason').value.trim();
+  const submitBtn = document.getElementById('bookSubmitBtn');
+
+  if (!doctorId) {
+    alertBox.textContent = 'Please choose a doctor.';
+    alertBox.style.display = 'block';
+    return;
+  }
+  if (!appointmentDate) {
+    alertBox.textContent = 'Please select an appointment date.';
+    alertBox.style.display = 'block';
+    return;
+  }
+  if (!appointmentTime) {
+    alertBox.textContent = 'Please pick an open time slot from the grid.';
+    alertBox.style.display = 'block';
+    return;
+  }
+  if (!reason || reason.length < 3) {
+    alertBox.textContent = 'Please provide a reason for the visit (minimum 3 characters).';
+    alertBox.style.display = 'block';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting Request...';
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}/api/appointments`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ doctorId, appointmentDate, appointmentTime, reason, appointmentType })
+    });
+
+    const data = await resp.json();
+
+    if (resp.ok && data.success) {
+      closeBookModal();
+      showToast('Appointment requested successfully! Status is Pending doctor confirmation.', 'success');
+      document.getElementById('bookReason').value = '';
+      reloadAppointments();
+    } else {
+      alertBox.textContent = data.error || 'Server rejected booking request. Please check slot availability.';
+      alertBox.style.display = 'block';
+      // Refresh slots in case of double-booking conflict
+      onDoctorOrDateChange();
+    }
+  } catch (err) {
+    alertBox.textContent = 'Network error connecting to booking server.';
+    alertBox.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-check"></i> <span>Request Appointment</span>';
+  }
+}
+
+// ─ View Appointment Details Modal ─
+function openViewAppointmentModal(apptId) {
+  currentViewApptId = apptId;
+  const appt = cachedAppointments.find(a => a.appointment_id === apptId);
+  if (!appt) return;
+
+  const modal = document.getElementById('viewAppointmentModal');
+  const body = document.getElementById('viewModalBody');
+  const cancelBtn = document.getElementById('viewModalCancelBtn');
+  const sub = document.getElementById('viewModalSub');
+
+  const rawStatus = appt.status || 'Pending';
+  const statusKey = rawStatus.toLowerCase();
+  const formattedDate = formatApptDate(appt.appointment_date);
+  const canCancel = (rawStatus === 'Pending' || rawStatus === 'Scheduled' || rawStatus === 'Rescheduled');
+
+  sub.textContent = `Appointment #${appt.appointment_id} — ${formattedDate}`;
+
+  body.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:12px 16px; border-radius:12px; margin-bottom:4px;">
+      <div>
+        <div style="font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase;">Status</div>
+        <span class="status-tag ${statusKey}" style="margin-top:4px;">${rawStatus}</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase;">Scheduled For</div>
+        <div style="font-size:13.5px; font-weight:700; color:var(--navy); margin-top:2px;">
+          ${formattedDate} at ${appt.appointment_time || '10:00 AM'}
+        </div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border); padding-top:10px;">
+      <div style="font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase; margin-bottom:4px;">Healthcare Specialist</div>
+      <div style="font-size:15px; font-weight:700; color:var(--navy);">${appt.doctor_name || appt.doctor_id}</div>
+      <div style="font-size:12.5px; color:var(--slate);">${appt.doctor_specialization || 'OB-GYN'}</div>
+    </div>
+
+    <div style="border-top:1px solid var(--border); padding-top:10px;">
+      <div style="font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase; margin-bottom:4px;">Hospital & Location</div>
+      <div style="font-size:13.5px; font-weight:600; color:var(--navy);">${appt.hospital_name || 'City Hospital'}</div>
+      <div style="font-size:12px; color:var(--slate);">${appt.hospital_location || 'Chennai'}</div>
+    </div>
+
+    <div style="border-top:1px solid var(--border); padding-top:10px;">
+      <div style="font-size:11px; font-weight:700; color:var(--slate); text-transform:uppercase; margin-bottom:4px;">Visit Type & Purpose</div>
+      <div style="font-size:13px; font-weight:600; color:var(--pink); margin-bottom:4px;">${appt.appointment_type || 'Prenatal Checkup'}</div>
+      <p style="font-size:13px; color:var(--navy); background:var(--bg); padding:10px 12px; border-radius:8px; line-height:1.4;">
+        ${appt.reason || 'General checkup'}
+      </p>
+    </div>
+
+    ${appt.notes ? `
+      <div style="border-top:1px solid var(--border); padding-top:10px;">
+        <div style="font-size:11px; font-weight:700; color:var(--purple); text-transform:uppercase; margin-bottom:4px;">Doctor Remarks / Reschedule Notes</div>
+        <p style="font-size:12.5px; color:var(--navy); background:var(--purple-light); padding:8px 12px; border-radius:8px;">
+          ${appt.notes}
+        </p>
+      </div>
+    ` : ''}
+  `;
+
+  if (cancelBtn) {
+    cancelBtn.style.display = canCancel ? 'inline-flex' : 'none';
+  }
+
+  modal.classList.add('show');
+}
+
+function closeViewModal() {
+  const modal = document.getElementById('viewAppointmentModal');
+  if (modal) modal.classList.remove('show');
+  currentViewApptId = null;
+}
+
+function onViewModalCancel() {
+  if (currentViewApptId) {
+    closeViewModal();
+    cancelAppointment(currentViewApptId);
+  }
+}
+
+// ─ Cancel Appointment ─
+async function cancelAppointment(apptId) {
+  if (!confirm('Are you sure you want to cancel this appointment request? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('authToken');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const resp = await fetch(`${API_BASE}/api/appointments/${apptId}/cancel`, {
+      method: 'PATCH',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ reason: 'Cancelled by patient from dashboard' })
+    });
+
+    const data = await resp.json();
+    if (resp.ok && data.success) {
+      showToast('Appointment cancelled successfully.', 'success');
+      reloadAppointments();
+    } else {
+      showToast(data.error || 'Failed to cancel appointment.', 'error');
+    }
+  } catch (err) {
+    showToast('Network error while cancelling appointment.', 'error');
+  }
+}
+
+// ─ Toast Notification System ─
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toastAlert');
+  const icon = document.getElementById('toastIcon');
+  const text = document.getElementById('toastText');
+  if (!toast) return;
+
+  toast.className = '';
+  toast.classList.add('show');
+  toast.classList.add(type);
+
+  if (type === 'success') {
+    icon.className = 'fas fa-circle-check';
+    icon.style.color = 'var(--green)';
+  } else if (type === 'error') {
+    icon.className = 'fas fa-triangle-exclamation';
+    icon.style.color = 'var(--red)';
+  } else {
+    icon.className = 'fas fa-info-circle';
+    icon.style.color = 'var(--blue)';
+  }
+
+  text.textContent = message;
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4000);
+}
+
+// Initialize on load
+window.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body>
+</html>
