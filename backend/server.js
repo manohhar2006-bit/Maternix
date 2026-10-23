@@ -2,7 +2,7 @@
 // Maternix — Backend REST API Server
 // Production-ready, secure Express server with JWT authentication,
 // bcrypt password hashing, role-based authorization, rate limiting,
-// and structured logging for AWS deployment.
+// and PostgreSQL connection pooling for Amazon RDS.
 // =============================================================================
 
 const path = require('path');
@@ -19,7 +19,9 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { createClient } = require('@supabase/supabase-js');
+
+// PostgreSQL Database Client Module
+const db = require('./db');
 
 // ── Startup Environment Validation ──────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -36,24 +38,12 @@ if (!JWT_SECRET || (IS_PROD && JWT_SECRET.includes('replace_with_a_secure'))) {
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const ENABLE_MOCK_FALLBACK = process.env.ENABLE_MOCK_FALLBACK === 'true' && !IS_PROD;
 
-// Supabase credentials validation
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
-
-let supabase = null;
-if (SUPABASE_URL && SUPABASE_KEY) {
-  try {
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false }
-    });
-  } catch (err) {
-    console.error('[FATAL] Failed to initialize Supabase client:', err.message);
-  }
-} else if (IS_PROD) {
-  console.error('[FATAL] SUPABASE_URL and database key are required in production.');
+// Validate PostgreSQL credentials in production
+if (IS_PROD && !db.isDbConfigured()) {
+  console.error('[FATAL] PostgreSQL configuration (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD or DATABASE_URL) is required in production.');
   process.exit(1);
-} else {
-  console.warn('[WARN] Running without Supabase credentials. Mock fallback will be used for local development.');
+} else if (!db.isDbConfigured()) {
+  console.warn('[WARN] Running without PostgreSQL credentials. Mock fallback will be used for local development.');
 }
 
 // ── Application Initialization ──────────────────────────────────────────────
@@ -252,7 +242,6 @@ async function verifyAndUpgradePassword(plainPassword, storedHashOrPlain, onUpgr
 
   // Legacy plaintext match
   if (plainPassword === storedHashOrPlain) {
-    // Upgrade to bcrypt hash
     try {
       const newHash = await bcrypt.hash(plainPassword, BCRYPT_SALT_ROUNDS);
       if (typeof onUpgrade === 'function') {
@@ -323,11 +312,13 @@ app.get('/health', (req, res) => {
 
 // Readiness Check: Verifies database connectivity
 app.get('/health/ready', async (req, res) => {
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { error } = await supabase.from('hospitals').select('hospital_id').limit(1);
-      if (error) throw error;
-      return res.status(200).json({ status: 'ready', database: 'connected' });
+      const isConnected = await db.healthCheck();
+      if (isConnected) {
+        return res.status(200).json({ status: 'ready', database: 'connected' });
+      }
+      throw new Error('Database health check query returned no rows');
     } catch (err) {
       if (!ENABLE_MOCK_FALLBACK) {
         return res.status(503).json({ status: 'not_ready', database: 'disconnected', error: 'Database health check failed' });
@@ -362,25 +353,31 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(pwd, BCRYPT_SALT_ROUNDS);
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: motherRow, error } = await supabase
-        .from('mothers')
-        .insert({
-          first_name:      first,
-          last_name:       last,
-          email:           email.toLowerCase(),
-          username:        username.toLowerCase(),
-          password:        hashedPassword,
-          status:          status,
-          pregnancy_stage: status === 'pregnant' ? 1 : 0,
-          current_week:    status === 'pregnant' ? 1 : 0,
-          due_date:        dueDate || null
-        })
-        .select('mother_id, first_name, last_name, email, username, status, current_week, due_date')
-        .single();
+      const insertSql = `
+        INSERT INTO mothers (
+          first_name, last_name, email, username, password,
+          status, pregnancy_stage, current_week, due_date
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING mother_id, first_name, last_name, email, username, status, current_week, due_date;
+      `;
+      const params = [
+        first,
+        last,
+        email.toLowerCase(),
+        username.toLowerCase(),
+        hashedPassword,
+        status,
+        status === 'pregnant' ? 1 : 0,
+        status === 'pregnant' ? 1 : 0,
+        dueDate || null
+      ];
 
-      if (!error && motherRow) {
+      const { rows } = await db.query(insertSql, params);
+      const motherRow = rows[0];
+
+      if (motherRow) {
         const token = generateToken({
           id: motherRow.mother_id,
           role: 'mother',
@@ -393,14 +390,11 @@ app.post('/api/auth/signup', authLimiter, async (req, res) => {
           user: sanitizeUser(motherRow)
         });
       }
-
-      if (error && error.code === '23505') { // Unique constraint violation in Postgres
+    } catch (err) {
+      if (err.code === '23505') { // Postgres Unique constraint violation
         return res.status(409).json({ error: 'Username or email is already registered.' });
       }
-
-      log('warn', 'Supabase signup error', { error: error ? error.message : 'Unknown' });
-    } catch (err) {
-      log('error', 'Supabase signup exception', { error: err.message });
+      log('error', 'PostgreSQL signup exception', { error: err.message, code: err.code });
     }
   }
 
@@ -447,18 +441,23 @@ app.post('/api/auth/login-mother', authLimiter, async (req, res) => {
 
   const cleanUser = username.trim().toLowerCase();
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: userRow, error } = await supabase
-        .from('mothers')
-        .select('*')
-        .or(`username.eq.${cleanUser},email.eq.${cleanUser}`)
-        .maybeSingle();
+      const selectSql = `
+        SELECT * FROM mothers
+        WHERE LOWER(username) = $1 OR LOWER(email) = $1
+        LIMIT 1;
+      `;
+      const { rows } = await db.query(selectSql, [cleanUser]);
+      const userRow = rows[0];
 
-      if (!error && userRow) {
+      if (userRow) {
         const isMatch = await verifyAndUpgradePassword(pwd, userRow.password, async (newHash) => {
-          await supabase.from('mothers').update({ password: newHash }).eq('mother_id', userRow.mother_id);
-          log('info', 'Upgraded legacy mother password to bcrypt hash', { motherId: userRow.mother_id });
+          await db.query(
+            'UPDATE mothers SET password = $1, updated_at = NOW() WHERE mother_id = $2;',
+            [newHash, userRow.mother_id]
+          );
+          log('info', 'Upgraded legacy mother password to bcrypt hash in PostgreSQL', { motherId: userRow.mother_id });
         });
 
         if (isMatch) {
@@ -475,7 +474,10 @@ app.post('/api/auth/login-mother', authLimiter, async (req, res) => {
         }
       }
     } catch (err) {
-      log('error', 'Supabase login exception', { error: err.message });
+      log('error', 'PostgreSQL mother login exception', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Authentication service temporarily unavailable.' });
+      }
     }
   }
 
@@ -508,18 +510,23 @@ app.post('/api/auth/login-doctor', authLimiter, async (req, res) => {
 
   const cleanId = docId.trim();
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: docRow, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .eq('doctor_id', cleanId)
-        .maybeSingle();
+      const selectSql = `
+        SELECT * FROM doctors
+        WHERE doctor_id = $1
+        LIMIT 1;
+      `;
+      const { rows } = await db.query(selectSql, [cleanId]);
+      const docRow = rows[0];
 
-      if (!error && docRow) {
+      if (docRow) {
         const isMatch = await verifyAndUpgradePassword(pwd, docRow.password, async (newHash) => {
-          await supabase.from('doctors').update({ password: newHash }).eq('doctor_id', docRow.doctor_id);
-          log('info', 'Upgraded legacy doctor password to bcrypt hash', { doctorId: docRow.doctor_id });
+          await db.query(
+            'UPDATE doctors SET password = $1, updated_at = NOW() WHERE doctor_id = $2;',
+            [newHash, docRow.doctor_id]
+          );
+          log('info', 'Upgraded legacy doctor password to bcrypt hash in PostgreSQL', { doctorId: docRow.doctor_id });
         });
 
         if (isMatch) {
@@ -536,7 +543,10 @@ app.post('/api/auth/login-doctor', authLimiter, async (req, res) => {
         }
       }
     } catch (err) {
-      log('error', 'Doctor login exception', { error: err.message });
+      log('error', 'PostgreSQL doctor login exception', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Authentication service temporarily unavailable.' });
+      }
     }
   }
 
@@ -580,23 +590,40 @@ app.post('/api/questionnaire', authenticate, async (req, res) => {
 
   const targetId = parseInt(motherId || req.user.id, 10);
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { error } = await supabase.from('mothers').update({
-        age: age ? parseInt(age, 10) : null,
-        blood_group: bloodType || null,
-        pregnancy_stage: status === 'pregnant' ? 1 : 0,
-        medical_history: chronicDetails || allergies || null,
-        current_week: currentWeek ? parseInt(currentWeek, 10) : 1,
-        due_date: dueDate || null
-      }).eq('mother_id', targetId);
+      const updateSql = `
+        UPDATE mothers
+        SET age = $1,
+            blood_group = $2,
+            pregnancy_stage = $3,
+            medical_history = $4,
+            current_week = $5,
+            due_date = $6,
+            updated_at = NOW()
+        WHERE mother_id = $7
+        RETURNING mother_id;
+      `;
+      const params = [
+        age ? parseInt(age, 10) : null,
+        bloodType || null,
+        status === 'pregnant' ? 1 : 0,
+        chronicDetails || allergies || null,
+        currentWeek ? parseInt(currentWeek, 10) : 1,
+        dueDate || null,
+        targetId
+      ];
 
-      if (!error) {
+      const { rows } = await db.query(updateSql, params);
+      if (rows && rows.length > 0) {
         return res.json({ success: true });
       }
-      log('warn', 'Supabase questionnaire update failed', { error: error.message });
+      log('warn', 'Questionnaire update matched 0 rows in PostgreSQL', { targetId });
     } catch (err) {
-      log('error', 'Questionnaire update exception', { error: err.message });
+      log('error', 'Questionnaire update exception', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Database service unavailable. Could not save questionnaire.' });
+      }
     }
   }
 
@@ -633,50 +660,60 @@ app.get('/api/dashboard/:motherId', authenticate, async (req, res) => {
     return res.status(403).json({ error: 'Access denied: You cannot access another patient\'s medical data.' });
   }
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
       const [
-        { data: monitors },
-        { data: appts },
-        { data: supportContacts },
-        { data: hospitals },
-        { data: medicalRecords },
-        { data: infants },
-        { data: doctors }
+        monitorsRes,
+        apptsRes,
+        supportRes,
+        hospitalsRes,
+        recordsRes,
+        infantsRes
       ] = await Promise.all([
-        supabase.from('health_monitors').select('*').eq('mother_id', reqMotherId).order('record_date', { ascending: false }),
-        supabase.from('appointments').select('*').eq('mother_id', reqMotherId).order('appointment_date', { ascending: true }),
-        supabase.from('support_contacts').select('*').eq('mother_id', reqMotherId),
-        supabase.from('hospitals').select('*'),
-        supabase.from('medical_records').select('*').eq('mother_id', reqMotherId).order('record_date', { ascending: false }),
-        supabase.from('infants').select('*, vaccinations(*)').eq('mother_id', reqMotherId),
-        supabase.from('doctors').select('doctor_id, name, specialization, contact_no, hospitalref_id')
+        db.query('SELECT * FROM health_monitors WHERE mother_id = $1 ORDER BY record_date DESC;', [reqMotherId]),
+        db.query(`
+          SELECT a.*,
+                 d.name AS doctor_name,
+                 d.specialization AS doctor_specialization,
+                 d.contact_no AS doctor_contact,
+                 COALESCE(h.name, 'City Hospital') AS hospital_name,
+                 COALESCE(h.location, 'Chennai') AS hospital_location
+          FROM appointments a
+          LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+          LEFT JOIN hospitals h ON CAST(h.hospital_id AS VARCHAR) = CAST(d.hospitalref_id AS VARCHAR)
+          WHERE a.mother_id = $1
+          ORDER BY a.appointment_date ASC;
+        `, [reqMotherId]),
+        db.query('SELECT * FROM support_contacts WHERE mother_id = $1;', [reqMotherId]),
+        db.query('SELECT * FROM hospitals;', []),
+        db.query('SELECT * FROM medical_records WHERE mother_id = $1 ORDER BY record_date DESC;', [reqMotherId]),
+        db.query(`
+          SELECT i.*, COALESCE(
+            (SELECT json_agg(v.*) FROM vaccinations v WHERE v.infant_id = i.infant_id),
+            '[]'::json
+          ) AS vaccinations
+          FROM infants i
+          WHERE i.mother_id = $1;
+        `, [reqMotherId])
       ]);
 
-      const enrichedAppts = (appts || []).map(a => {
-        const doc = (doctors || []).find(d => d.doctor_id === a.doctor_id);
-        const hosp = doc ? (hospitals || []).find(h => String(h.hospital_id) === String(doc.hospitalref_id)) : null;
-        return {
-          ...a,
-          doctor_name: doc ? doc.name : (a.doctor_id || 'Doctor'),
-          doctor_specialization: doc ? doc.specialization : 'OB-GYN Specialist',
-          doctor_contact: doc ? doc.contact_no : '',
-          hospital_name: hosp ? hosp.name : 'City Hospital'
-        };
-      });
+      const monitors = monitorsRes.rows || [];
+      const vitals = monitors.length > 0 ? monitors[0] : null;
 
-      const vitals = monitors && monitors.length > 0 ? monitors[0] : null;
       return res.json({
         vitals,
-        history: monitors || [],
-        appointments: enrichedAppts,
-        supportContacts: supportContacts || [],
-        hospitals: hospitals || [],
-        medicalRecords: medicalRecords || [],
-        infants: infants || []
+        history: monitors,
+        appointments: apptsRes.rows || [],
+        supportContacts: supportRes.rows || [],
+        hospitals: hospitalsRes.rows || [],
+        medicalRecords: recordsRes.rows || [],
+        infants: infantsRes.rows || []
       });
     } catch (err) {
-      log('error', 'Supabase dashboard query failed', { error: err.message });
+      log('error', 'PostgreSQL dashboard query failed', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Health record database service unavailable.' });
+      }
     }
   }
 
@@ -708,22 +745,23 @@ app.post('/api/doctor/prescription', authenticate, requireRole('doctor'), async 
   const targetMotherId = parseInt(motherId, 10);
   const today = new Date().toISOString().split('T')[0];
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data, error } = await supabase.from('medical_records').insert({
-        mother_id: targetMotherId,
-        diagnosis,
-        prescription,
-        record_date: today
-      }).select('record_id').single();
-
-      if (!error) {
-        log('info', 'Doctor prescription recorded', { doctorId: req.user.id, motherId: targetMotherId });
-        return res.json({ success: true, recordId: data ? data.record_id : null });
+      const insertSql = `
+        INSERT INTO medical_records (mother_id, diagnosis, prescription, record_date)
+        VALUES ($1, $2, $3, $4)
+        RETURNING record_id;
+      `;
+      const { rows } = await db.query(insertSql, [targetMotherId, diagnosis, prescription, today]);
+      if (rows && rows.length > 0) {
+        log('info', 'Doctor prescription recorded in PostgreSQL', { doctorId: req.user.id, motherId: targetMotherId });
+        return res.json({ success: true, recordId: rows[0].record_id });
       }
-      log('warn', 'Prescription insert error', { error: error.message });
     } catch (err) {
-      log('error', 'Prescription database exception', { error: err.message });
+      log('error', 'PostgreSQL prescription database exception', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Database service unavailable. Failed to persist prescription.' });
+      }
     }
   }
 
@@ -744,35 +782,38 @@ app.post('/api/doctor/prescription', authenticate, requireRole('doctor'), async 
 
 // ── API: Doctor Dashboard Patients ──────────────────────────────────────────
 app.get('/api/doctor/patients', authenticate, requireRole('doctor'), async (req, res) => {
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: mothers, error: mErr } = await supabase
-        .from('mothers')
-        .select('mother_id, first_name, last_name, email, username, status, pregnancy_stage, current_week, due_date, age, blood_group, medical_history')
-        .order('mother_id');
+      const mothersRes = await db.query(`
+        SELECT mother_id, first_name, last_name, email, username, status,
+               pregnancy_stage, current_week, due_date, age, blood_group, medical_history
+        FROM mothers
+        ORDER BY mother_id;
+      `);
 
-      if (!mErr && mothers) {
-        const [
-          { data: monitors },
-          { data: appts },
-          { data: infants }
-        ] = await Promise.all([
-          supabase.from('health_monitors').select('*'),
-          supabase.from('appointments').select('*'),
-          supabase.from('infants').select('*')
-        ]);
+      const [monitorsRes, apptsRes, infantsRes] = await Promise.all([
+        db.query('SELECT * FROM health_monitors ORDER BY record_date DESC;'),
+        db.query('SELECT * FROM appointments ORDER BY appointment_date ASC;'),
+        db.query('SELECT * FROM infants;')
+      ]);
 
-        const result = mothers.map(m => ({
-          ...m,
-          health_monitors: (monitors || []).filter(h => h.mother_id === m.mother_id),
-          appointments: (appts || []).filter(a => a.mother_id === m.mother_id),
-          infants: (infants || []).filter(i => i.mother_id === m.mother_id)
-        }));
+      const monitors = monitorsRes.rows || [];
+      const appts = apptsRes.rows || [];
+      const infants = infantsRes.rows || [];
 
-        return res.json(result);
-      }
+      const result = (mothersRes.rows || []).map(m => ({
+        ...m,
+        health_monitors: monitors.filter(h => h.mother_id === m.mother_id),
+        appointments: appts.filter(a => a.mother_id === m.mother_id),
+        infants: infants.filter(i => i.mother_id === m.mother_id)
+      }));
+
+      return res.json(result);
     } catch (err) {
-      log('error', 'Supabase doctor patients query failed', { error: err.message });
+      log('error', 'PostgreSQL doctor patients query failed', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Database service unavailable. Cannot retrieve patient list.' });
+      }
     }
   }
 
@@ -794,34 +835,24 @@ app.get('/api/doctor/patients', authenticate, requireRole('doctor'), async (req,
 app.get('/api/doctors', async (req, res) => {
   const { specialization } = req.query;
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      let query = supabase.from('doctors').select('doctor_id, name, specialization, experience, contact_no, hospitalref_id');
-      if (specialization) {
-        query = query.ilike('specialization', `%${specialization}%`);
-      }
-      const [{ data: docs, error }, { data: hospitals }] = await Promise.all([
-        query,
-        supabase.from('hospitals').select('*')
-      ]);
-
-      if (!error && docs) {
-        const list = docs.map(d => {
-          const hosp = (hospitals || []).find(h => String(h.hospital_id) === String(d.hospitalref_id));
-          return {
-            doctor_id: d.doctor_id,
-            name: d.name,
-            specialization: d.specialization,
-            experience: d.experience,
-            contact_no: d.contact_no,
-            hospital_name: hosp ? hosp.name : 'City Hospital',
-            hospital_location: hosp ? hosp.location : 'Chennai'
-          };
-        });
-        return res.json(list);
-      }
+      const querySql = `
+        SELECT d.doctor_id, d.name, d.specialization, d.experience, d.contact_no,
+               COALESCE(h.name, 'City Hospital') AS hospital_name,
+               COALESCE(h.location, 'Chennai') AS hospital_location
+        FROM doctors d
+        LEFT JOIN hospitals h ON CAST(h.hospital_id AS VARCHAR) = CAST(d.hospitalref_id AS VARCHAR)
+        WHERE ($1::text IS NULL OR d.specialization ILIKE '%' || $1 || '%')
+        ORDER BY d.doctor_id;
+      `;
+      const { rows } = await db.query(querySql, [specialization ? String(specialization) : null]);
+      return res.json(rows || []);
     } catch (err) {
-      log('warn', 'Supabase doctors query exception', { error: err.message });
+      log('warn', 'PostgreSQL doctors query exception', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Doctor directory service unavailable.' });
+      }
     }
   }
 
@@ -854,26 +885,23 @@ app.get('/api/doctors/:doctorId/slots', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Valid appointment date (today or future in YYYY-MM-DD format) is required.' });
   }
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: doc, error: dErr } = await supabase
-        .from('doctors')
-        .select('doctor_id, name')
-        .eq('doctor_id', doctorId)
-        .maybeSingle();
-
-      if (dErr || !doc) {
+      const docRes = await db.query('SELECT doctor_id, name FROM doctors WHERE doctor_id = $1 LIMIT 1;', [doctorId]);
+      if (!docRes.rows || docRes.rows.length === 0) {
         return res.status(404).json({ error: 'Doctor not found.' });
       }
+      const doc = docRes.rows[0];
 
-      const { data: activeAppts } = await supabase
-        .from('appointments')
-        .select('appointment_time, status')
-        .eq('doctor_id', doctorId)
-        .eq('appointment_date', date)
-        .not('status', 'in', '("Cancelled","Rejected")');
+      const apptsRes = await db.query(`
+        SELECT appointment_time, status
+        FROM appointments
+        WHERE doctor_id = $1
+          AND appointment_date = $2
+          AND status NOT IN ('Cancelled', 'Rejected');
+      `, [doctorId, date]);
 
-      const bookedSlots = (activeAppts || []).map(a => a.appointment_time).filter(Boolean);
+      const bookedSlots = (apptsRes.rows || []).map(a => a.appointment_time).filter(Boolean);
       const availableSlots = VALID_TIME_SLOTS.filter(slot => !bookedSlots.includes(slot));
 
       return res.json({
@@ -885,7 +913,10 @@ app.get('/api/doctors/:doctorId/slots', authenticate, async (req, res) => {
         availableSlots
       });
     } catch (err) {
-      log('warn', 'Supabase slot check error', { error: err.message });
+      log('warn', 'PostgreSQL slot check error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Slot schedule service unavailable.' });
+      }
     }
   }
 
@@ -941,63 +972,67 @@ app.post('/api/appointments', authenticate, requireRole('mother'), async (req, r
     ? appointmentType.trim() 
     : 'Prenatal Checkup';
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: doc, error: docErr } = await supabase
-        .from('doctors')
-        .select('doctor_id, name, specialization, contact_no, hospitalref_id')
-        .eq('doctor_id', doctorId)
-        .maybeSingle();
+      const docRes = await db.query(`
+        SELECT doctor_id, name, specialization, contact_no, hospitalref_id
+        FROM doctors
+        WHERE doctor_id = $1
+        LIMIT 1;
+      `, [doctorId]);
 
-      if (docErr || !doc) {
+      if (!docRes.rows || docRes.rows.length === 0) {
         return res.status(404).json({ error: 'Selected doctor does not exist.' });
       }
+      const doc = docRes.rows[0];
 
       // Check Doctor conflict (double-booking)
-      const { data: docConflict } = await supabase
-        .from('appointments')
-        .select('appointment_id')
-        .eq('doctor_id', doctorId)
-        .eq('appointment_date', appointmentDate)
-        .eq('appointment_time', appointmentTime)
-        .not('status', 'in', '("Cancelled","Rejected")')
-        .maybeSingle();
+      const docConflictRes = await db.query(`
+        SELECT appointment_id FROM appointments
+        WHERE doctor_id = $1
+          AND appointment_date = $2
+          AND appointment_time = $3
+          AND status NOT IN ('Cancelled', 'Rejected')
+        LIMIT 1;
+      `, [doctorId, appointmentDate, appointmentTime]);
 
-      if (docConflict) {
+      if (docConflictRes.rows && docConflictRes.rows.length > 0) {
         return res.status(409).json({ error: 'This time slot is already booked for this doctor. Please choose another time.' });
       }
 
       // Check Patient conflict
-      const { data: patientConflict } = await supabase
-        .from('appointments')
-        .select('appointment_id')
-        .eq('mother_id', motherId)
-        .eq('appointment_date', appointmentDate)
-        .eq('appointment_time', appointmentTime)
-        .not('status', 'in', '("Cancelled","Rejected")')
-        .maybeSingle();
+      const patientConflictRes = await db.query(`
+        SELECT appointment_id FROM appointments
+        WHERE mother_id = $1
+          AND appointment_date = $2
+          AND appointment_time = $3
+          AND status NOT IN ('Cancelled', 'Rejected')
+        LIMIT 1;
+      `, [motherId, appointmentDate, appointmentTime]);
 
-      if (patientConflict) {
+      if (patientConflictRes.rows && patientConflictRes.rows.length > 0) {
         return res.status(409).json({ error: 'You already have an active appointment scheduled at this date and time.' });
       }
 
-      const { data: newRow, error: insErr } = await supabase
-        .from('appointments')
-        .insert({
-          mother_id: motherId,
-          doctor_id: doctorId,
-          appointment_date: appointmentDate,
-          appointment_time: appointmentTime,
-          reason: cleanReason,
-          appointment_type: cleanType,
-          status: 'Pending',
-          notes: null
-        })
-        .select('*')
-        .single();
+      const insertSql = `
+        INSERT INTO appointments (
+          mother_id, doctor_id, appointment_date, appointment_time,
+          reason, appointment_type, status, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'Pending', NULL)
+        RETURNING *;
+      `;
+      const { rows } = await db.query(insertSql, [
+        motherId,
+        doctorId,
+        appointmentDate,
+        appointmentTime,
+        cleanReason,
+        cleanType
+      ]);
 
-      if (!insErr && newRow) {
-        log('info', 'Patient appointment request created', { motherId, doctorId, appointmentId: newRow.appointment_id });
+      const newRow = rows[0];
+      if (newRow) {
+        log('info', 'Patient appointment request created in PostgreSQL', { motherId, doctorId, appointmentId: newRow.appointment_id });
         return res.status(201).json({
           success: true,
           message: 'Appointment request submitted successfully. Awaiting doctor confirmation.',
@@ -1009,9 +1044,14 @@ app.post('/api/appointments', authenticate, requireRole('mother'), async (req, r
           }
         });
       }
-      log('warn', 'Supabase appointment insert failed', { error: insErr ? insErr.message : 'Unknown' });
     } catch (err) {
-      log('error', 'Supabase appointment booking exception', { error: err.message });
+      if (err.code === '23505') {
+        return res.status(409).json({ error: 'This time slot is already booked for this doctor. Please choose another time.' });
+      }
+      log('error', 'PostgreSQL appointment booking exception', { error: err.message, code: err.code });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Appointment booking service unavailable.' });
+      }
     }
   }
 
@@ -1075,31 +1115,28 @@ app.post('/api/appointments', authenticate, requireRole('mother'), async (req, r
 app.get('/api/appointments', authenticate, requireRole('mother'), async (req, res) => {
   const motherId = parseInt(req.user.id, 10);
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const [{ data: appts, error }, { data: doctors }, { data: hospitals }] = await Promise.all([
-        supabase.from('appointments').select('*').eq('mother_id', motherId).order('appointment_date', { ascending: true }),
-        supabase.from('doctors').select('doctor_id, name, specialization, contact_no, hospitalref_id'),
-        supabase.from('hospitals').select('*')
-      ]);
-
-      if (!error && appts) {
-        const enriched = appts.map(a => {
-          const doc = (doctors || []).find(d => d.doctor_id === a.doctor_id);
-          const hosp = doc ? (hospitals || []).find(h => String(h.hospital_id) === String(doc.hospitalref_id)) : null;
-          return {
-            ...a,
-            doctor_name: doc ? doc.name : (a.doctor_id || 'Doctor'),
-            doctor_specialization: doc ? doc.specialization : 'Specialist',
-            doctor_contact: doc ? doc.contact_no : '',
-            hospital_name: hosp ? hosp.name : 'City Hospital',
-            hospital_location: hosp ? hosp.location : 'Chennai'
-          };
-        });
-        return res.json(enriched);
-      }
+      const selectSql = `
+        SELECT a.*,
+               d.name AS doctor_name,
+               d.specialization AS doctor_specialization,
+               d.contact_no AS doctor_contact,
+               COALESCE(h.name, 'City Hospital') AS hospital_name,
+               COALESCE(h.location, 'Chennai') AS hospital_location
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN hospitals h ON CAST(h.hospital_id AS VARCHAR) = CAST(d.hospitalref_id AS VARCHAR)
+        WHERE a.mother_id = $1
+        ORDER BY a.appointment_date ASC;
+      `;
+      const { rows } = await db.query(selectSql, [motherId]);
+      return res.json(rows || []);
     } catch (err) {
-      log('warn', 'Supabase appointments retrieval error', { error: err.message });
+      log('warn', 'PostgreSQL appointments retrieval error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Appointment retrieval service unavailable.' });
+      }
     }
   }
 
@@ -1118,10 +1155,28 @@ app.get('/api/appointments', authenticate, requireRole('mother'), async (req, re
 app.get('/api/appointments/:id', authenticate, async (req, res) => {
   const apptId = parseInt(req.params.id, 10);
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: a, error } = await supabase.from('appointments').select('*').eq('appointment_id', apptId).maybeSingle();
-      if (error || !a) {
+      const selectSql = `
+        SELECT a.*,
+               d.name AS doctor_name,
+               d.specialization AS doctor_specialization,
+               d.contact_no AS doctor_contact,
+               COALESCE(h.name, 'City Hospital') AS hospital_name,
+               COALESCE(h.location, 'Chennai') AS hospital_location,
+               CONCAT(m.first_name, ' ', m.last_name) AS mother_name,
+               m.email AS mother_email
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+        LEFT JOIN hospitals h ON CAST(h.hospital_id AS VARCHAR) = CAST(d.hospitalref_id AS VARCHAR)
+        LEFT JOIN mothers m ON a.mother_id = m.mother_id
+        WHERE a.appointment_id = $1
+        LIMIT 1;
+      `;
+      const { rows } = await db.query(selectSql, [apptId]);
+      const a = rows[0];
+
+      if (!a) {
         return res.status(404).json({ error: 'Appointment not found.' });
       }
 
@@ -1132,26 +1187,12 @@ app.get('/api/appointments/:id', authenticate, async (req, res) => {
         return res.status(403).json({ error: 'Access denied: You cannot view appointments for other doctors.' });
       }
 
-      const [{ data: doc }, { data: mother }, { data: hospitals }] = await Promise.all([
-        supabase.from('doctors').select('*').eq('doctor_id', a.doctor_id).maybeSingle(),
-        supabase.from('mothers').select('*').eq('mother_id', a.mother_id).maybeSingle(),
-        supabase.from('hospitals').select('*')
-      ]);
-
-      const hosp = doc ? (hospitals || []).find(h => String(h.hospital_id) === String(doc.hospitalref_id)) : null;
-
-      return res.json({
-        ...a,
-        doctor_name: doc ? doc.name : a.doctor_id,
-        doctor_specialization: doc ? doc.specialization : '',
-        doctor_contact: doc ? doc.contact_no : '',
-        hospital_name: hosp ? hosp.name : 'City Hospital',
-        hospital_location: hosp ? hosp.location : 'Chennai',
-        mother_name: mother ? `${mother.first_name} ${mother.last_name}` : `Patient #${a.mother_id}`,
-        mother_email: mother ? mother.email : ''
-      });
+      return res.json(a);
     } catch (err) {
-      log('warn', 'Supabase appointment detail error', { error: err.message });
+      log('warn', 'PostgreSQL appointment detail error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Service unavailable.' });
+      }
     }
   }
 
@@ -1180,10 +1221,12 @@ app.patch('/api/appointments/:id/cancel', authenticate, requireRole('mother'), a
   const motherId = parseInt(req.user.id, 10);
   const { reason } = req.body || {};
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: a, error } = await supabase.from('appointments').select('*').eq('appointment_id', apptId).maybeSingle();
-      if (error || !a) {
+      const checkRes = await db.query('SELECT * FROM appointments WHERE appointment_id = $1 LIMIT 1;', [apptId]);
+      const a = checkRes.rows[0];
+
+      if (!a) {
         return res.status(404).json({ error: 'Appointment not found.' });
       }
 
@@ -1199,19 +1242,24 @@ app.patch('/api/appointments/:id/cancel', authenticate, requireRole('mother'), a
       }
 
       const noteUpdate = reason ? `Cancelled by patient: ${reason}` : 'Cancelled by patient';
-      const { data: updated, error: uErr } = await supabase
-        .from('appointments')
-        .update({ status: 'Cancelled', notes: noteUpdate, updated_at: new Date().toISOString() })
-        .eq('appointment_id', apptId)
-        .select('*')
-        .single();
+      const updateSql = `
+        UPDATE appointments
+        SET status = 'Cancelled', notes = $1, updated_at = NOW()
+        WHERE appointment_id = $2
+        RETURNING *;
+      `;
+      const { rows } = await db.query(updateSql, [noteUpdate, apptId]);
+      const updated = rows[0];
 
-      if (!uErr && updated) {
-        log('info', 'Patient cancelled appointment', { appointmentId: apptId, motherId });
+      if (updated) {
+        log('info', 'Patient cancelled appointment in PostgreSQL', { appointmentId: apptId, motherId });
         return res.json({ success: true, message: 'Appointment cancelled successfully.', appointment: updated });
       }
     } catch (err) {
-      log('warn', 'Supabase appointment cancel failed', { error: err.message });
+      log('warn', 'PostgreSQL appointment cancel failed', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Service unavailable.' });
+      }
     }
   }
 
@@ -1247,30 +1295,28 @@ app.patch('/api/appointments/:id/cancel', authenticate, requireRole('mother'), a
 app.get('/api/doctor/appointments', authenticate, requireRole('doctor'), async (req, res) => {
   const doctorId = req.user.id;
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const [{ data: appts, error }, { data: mothers }] = await Promise.all([
-        supabase.from('appointments').select('*').eq('doctor_id', doctorId).order('appointment_date', { ascending: true }),
-        supabase.from('mothers').select('mother_id, first_name, last_name, email, status, current_week, age, blood_group')
-      ]);
-
-      if (!error && appts) {
-        const enriched = appts.map(a => {
-          const m = (mothers || []).find(mother => mother.mother_id === a.mother_id);
-          return {
-            ...a,
-            mother_name: m ? `${m.first_name} ${m.last_name}` : `Patient #${a.mother_id}`,
-            mother_email: m ? m.email : '',
-            mother_status: m ? m.status : '',
-            mother_week: m ? m.current_week : 0,
-            mother_age: m ? m.age : null,
-            mother_blood_group: m ? m.blood_group : null
-          };
-        });
-        return res.json(enriched);
-      }
+      const selectSql = `
+        SELECT a.*,
+               CONCAT(m.first_name, ' ', m.last_name) AS mother_name,
+               m.email AS mother_email,
+               m.status AS mother_status,
+               m.current_week AS mother_week,
+               m.age AS mother_age,
+               m.blood_group AS mother_blood_group
+        FROM appointments a
+        LEFT JOIN mothers m ON a.mother_id = m.mother_id
+        WHERE a.doctor_id = $1
+        ORDER BY a.appointment_date ASC;
+      `;
+      const { rows } = await db.query(selectSql, [doctorId]);
+      return res.json(rows || []);
     } catch (err) {
-      log('warn', 'Supabase doctor appointments query error', { error: err.message });
+      log('warn', 'PostgreSQL doctor appointments query error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Doctor appointments service unavailable.' });
+      }
     }
   }
 
@@ -1290,10 +1336,12 @@ app.patch('/api/doctor/appointments/:id/confirm', authenticate, requireRole('doc
   const apptId = parseInt(req.params.id, 10);
   const doctorId = req.user.id;
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: a, error } = await supabase.from('appointments').select('*').eq('appointment_id', apptId).maybeSingle();
-      if (error || !a) {
+      const checkRes = await db.query('SELECT * FROM appointments WHERE appointment_id = $1 LIMIT 1;', [apptId]);
+      const a = checkRes.rows[0];
+
+      if (!a) {
         return res.status(404).json({ error: 'Appointment not found.' });
       }
 
@@ -1308,19 +1356,24 @@ app.patch('/api/doctor/appointments/:id/confirm', authenticate, requireRole('doc
         return res.status(400).json({ error: `Cannot confirm an appointment with status '${a.status}'.` });
       }
 
-      const { data: updated, error: uErr } = await supabase
-        .from('appointments')
-        .update({ status: 'Scheduled', updated_at: new Date().toISOString() })
-        .eq('appointment_id', apptId)
-        .select('*')
-        .single();
+      const updateSql = `
+        UPDATE appointments
+        SET status = 'Scheduled', updated_at = NOW()
+        WHERE appointment_id = $1
+        RETURNING *;
+      `;
+      const { rows } = await db.query(updateSql, [apptId]);
+      const updated = rows[0];
 
-      if (!uErr && updated) {
-        log('info', 'Doctor confirmed appointment', { appointmentId: apptId, doctorId });
+      if (updated) {
+        log('info', 'Doctor confirmed appointment in PostgreSQL', { appointmentId: apptId, doctorId });
         return res.json({ success: true, message: 'Appointment confirmed successfully.', appointment: updated });
       }
     } catch (err) {
-      log('warn', 'Supabase doctor confirm error', { error: err.message });
+      log('warn', 'PostgreSQL doctor confirm error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Service unavailable.' });
+      }
     }
   }
 
@@ -1357,10 +1410,12 @@ app.patch('/api/doctor/appointments/:id/reject', authenticate, requireRole('doct
   const doctorId = req.user.id;
   const { reason } = req.body || {};
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: a, error } = await supabase.from('appointments').select('*').eq('appointment_id', apptId).maybeSingle();
-      if (error || !a) {
+      const checkRes = await db.query('SELECT * FROM appointments WHERE appointment_id = $1 LIMIT 1;', [apptId]);
+      const a = checkRes.rows[0];
+
+      if (!a) {
         return res.status(404).json({ error: 'Appointment not found.' });
       }
 
@@ -1376,19 +1431,24 @@ app.patch('/api/doctor/appointments/:id/reject', authenticate, requireRole('doct
       }
 
       const noteUpdate = reason ? `Declined by doctor: ${reason}` : 'Declined by doctor';
-      const { data: updated, error: uErr } = await supabase
-        .from('appointments')
-        .update({ status: 'Rejected', notes: noteUpdate, updated_at: new Date().toISOString() })
-        .eq('appointment_id', apptId)
-        .select('*')
-        .single();
+      const updateSql = `
+        UPDATE appointments
+        SET status = 'Rejected', notes = $1, updated_at = NOW()
+        WHERE appointment_id = $2
+        RETURNING *;
+      `;
+      const { rows } = await db.query(updateSql, [noteUpdate, apptId]);
+      const updated = rows[0];
 
-      if (!uErr && updated) {
-        log('info', 'Doctor rejected appointment', { appointmentId: apptId, doctorId });
+      if (updated) {
+        log('info', 'Doctor rejected appointment in PostgreSQL', { appointmentId: apptId, doctorId });
         return res.json({ success: true, message: 'Appointment declined.', appointment: updated });
       }
     } catch (err) {
-      log('warn', 'Supabase doctor reject error', { error: err.message });
+      log('warn', 'PostgreSQL doctor reject error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Service unavailable.' });
+      }
     }
   }
 
@@ -1434,10 +1494,12 @@ app.patch('/api/doctor/appointments/:id/reschedule', authenticate, requireRole('
     return res.status(400).json({ error: `Invalid time slot. Allowed slots: ${VALID_TIME_SLOTS.join(', ')}` });
   }
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: a, error } = await supabase.from('appointments').select('*').eq('appointment_id', apptId).maybeSingle();
-      if (error || !a) {
+      const checkRes = await db.query('SELECT * FROM appointments WHERE appointment_id = $1 LIMIT 1;', [apptId]);
+      const a = checkRes.rows[0];
+
+      if (!a) {
         return res.status(404).json({ error: 'Appointment not found.' });
       }
 
@@ -1450,40 +1512,46 @@ app.patch('/api/doctor/appointments/:id/reschedule', authenticate, requireRole('
       }
 
       // Check doctor availability on new date & slot (excluding this appointment)
-      const { data: conflict } = await supabase
-        .from('appointments')
-        .select('appointment_id')
-        .eq('doctor_id', doctorId)
-        .eq('appointment_date', appointmentDate)
-        .eq('appointment_time', appointmentTime)
-        .neq('appointment_id', apptId)
-        .not('status', 'in', '("Cancelled","Rejected")')
-        .maybeSingle();
+      const conflictRes = await db.query(`
+        SELECT appointment_id FROM appointments
+        WHERE doctor_id = $1
+          AND appointment_date = $2
+          AND appointment_time = $3
+          AND appointment_id <> $4
+          AND status NOT IN ('Cancelled', 'Rejected')
+        LIMIT 1;
+      `, [doctorId, appointmentDate, appointmentTime, apptId]);
 
-      if (conflict) {
+      if (conflictRes.rows && conflictRes.rows.length > 0) {
         return res.status(409).json({ error: 'This time slot is already booked on the proposed date.' });
       }
 
       const noteText = notes ? `Rescheduled by doctor: ${notes}` : 'Rescheduled by doctor to new time slot';
-      const { data: updated, error: uErr } = await supabase
-        .from('appointments')
-        .update({
-          appointment_date: appointmentDate,
-          appointment_time: appointmentTime,
-          status: 'Rescheduled',
-          notes: noteText,
-          updated_at: new Date().toISOString()
-        })
-        .eq('appointment_id', apptId)
-        .select('*')
-        .single();
+      const updateSql = `
+        UPDATE appointments
+        SET appointment_date = $1,
+            appointment_time = $2,
+            status = 'Rescheduled',
+            notes = $3,
+            updated_at = NOW()
+        WHERE appointment_id = $4
+        RETURNING *;
+      `;
+      const { rows } = await db.query(updateSql, [appointmentDate, appointmentTime, noteText, apptId]);
+      const updated = rows[0];
 
-      if (!uErr && updated) {
-        log('info', 'Doctor rescheduled appointment', { appointmentId: apptId, doctorId, appointmentDate, appointmentTime });
+      if (updated) {
+        log('info', 'Doctor rescheduled appointment in PostgreSQL', { appointmentId: apptId, doctorId, appointmentDate, appointmentTime });
         return res.json({ success: true, message: 'Appointment rescheduled successfully.', appointment: updated });
       }
     } catch (err) {
-      log('warn', 'Supabase doctor reschedule error', { error: err.message });
+      if (err.code === '23505') {
+        return res.status(409).json({ error: 'This time slot is already booked on the proposed date.' });
+      }
+      log('warn', 'PostgreSQL doctor reschedule error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Service unavailable.' });
+      }
     }
   }
 
@@ -1549,47 +1617,56 @@ app.post('/api/doctor/appointments/follow-up', authenticate, requireRole('doctor
   const cleanReason = (reason && typeof reason === 'string' && reason.trim()) || 'Follow-up consultation';
   const cleanType = (appointmentType && typeof appointmentType === 'string' && appointmentType.trim()) || 'Follow-up';
 
-  if (supabase) {
+  if (db.isDbConfigured()) {
     try {
-      const { data: mother, error: mErr } = await supabase.from('mothers').select('mother_id').eq('mother_id', targetMotherId).maybeSingle();
-      if (mErr || !mother) {
+      const motherCheck = await db.query('SELECT mother_id FROM mothers WHERE mother_id = $1 LIMIT 1;', [targetMotherId]);
+      if (!motherCheck.rows || motherCheck.rows.length === 0) {
         return res.status(404).json({ error: 'Patient not found.' });
       }
 
-      const { data: conflict } = await supabase
-        .from('appointments')
-        .select('appointment_id')
-        .eq('doctor_id', doctorId)
-        .eq('appointment_date', appointmentDate)
-        .eq('appointment_time', appointmentTime)
-        .not('status', 'in', '("Cancelled","Rejected")')
-        .maybeSingle();
+      const conflictCheck = await db.query(`
+        SELECT appointment_id FROM appointments
+        WHERE doctor_id = $1
+          AND appointment_date = $2
+          AND appointment_time = $3
+          AND status NOT IN ('Cancelled', 'Rejected')
+        LIMIT 1;
+      `, [doctorId, appointmentDate, appointmentTime]);
 
-      if (conflict) {
+      if (conflictCheck.rows && conflictCheck.rows.length > 0) {
         return res.status(409).json({ error: 'You already have an appointment booked at this date and time.' });
       }
 
-      const { data: created, error: cErr } = await supabase
-        .from('appointments')
-        .insert({
-          mother_id: targetMotherId,
-          doctor_id: doctorId,
-          appointment_date: appointmentDate,
-          appointment_time: appointmentTime,
-          reason: cleanReason,
-          appointment_type: cleanType,
-          status: 'Scheduled',
-          notes: notes || 'Scheduled by doctor during consultation'
-        })
-        .select('*')
-        .single();
+      const insertSql = `
+        INSERT INTO appointments (
+          mother_id, doctor_id, appointment_date, appointment_time,
+          reason, appointment_type, status, notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'Scheduled', $7)
+        RETURNING *;
+      `;
+      const { rows } = await db.query(insertSql, [
+        targetMotherId,
+        doctorId,
+        appointmentDate,
+        appointmentTime,
+        cleanReason,
+        cleanType,
+        notes || 'Scheduled by doctor during consultation'
+      ]);
 
-      if (!cErr && created) {
-        log('info', 'Doctor scheduled follow-up appointment', { doctorId, motherId: targetMotherId, appointmentId: created.appointment_id });
+      const created = rows[0];
+      if (created) {
+        log('info', 'Doctor scheduled follow-up appointment in PostgreSQL', { doctorId, motherId: targetMotherId, appointmentId: created.appointment_id });
         return res.status(201).json({ success: true, message: 'Follow-up appointment scheduled successfully.', appointment: created });
       }
     } catch (err) {
-      log('warn', 'Supabase follow-up insert error', { error: err.message });
+      if (err.code === '23505') {
+        return res.status(409).json({ error: 'You already have an appointment booked at this date and time.' });
+      }
+      log('warn', 'PostgreSQL follow-up insert error', { error: err.message });
+      if (!ENABLE_MOCK_FALLBACK) {
+        return res.status(503).json({ error: 'Service unavailable.' });
+      }
     }
   }
 
@@ -1654,14 +1731,21 @@ const server = app.listen(PORT, () => {
   log('info', `Maternix server started successfully`, {
     port: PORT,
     environment: NODE_ENV,
-    mockFallback: ENABLE_MOCK_FALLBACK
+    mockFallback: ENABLE_MOCK_FALLBACK,
+    databaseConfigured: db.isDbConfigured()
   });
 });
 
-function gracefulShutdown(signal) {
+async function gracefulShutdown(signal) {
   log('info', `Received ${signal}. Shutting down gracefully...`);
-  server.close(() => {
+  server.close(async () => {
     log('info', 'HTTP server closed.');
+    try {
+      await db.closePool();
+      log('info', 'PostgreSQL connection pool closed.');
+    } catch (e) {
+      log('error', 'Error while closing PostgreSQL pool', { error: e.message });
+    }
     process.exit(0);
   });
   // Force shutdown after 10s timeout
